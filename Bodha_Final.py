@@ -12,7 +12,7 @@ import base64
 genai.configure(api_key="AIzaSyCK5pE_lF_Ke7oS7euv-JyWJDOMnKUBCSY")  # <-- Replace with your actual API Key
 
 # 📘 Streamlit Config
-st.set_page_config(page_title="Smart Exam Generator", layout="centered")
+st.set_page_config(page_title="Smart Exam Generator", layout="wide")
 
 def set_background(image_file):
     image_path = Path(__file__).parent / image_file
@@ -53,21 +53,6 @@ def set_background(image_file):
         background-color: transparent !important;
         }}
 
-    h1 {{
-    display: inline-block;
-    max-width: 100%;
-    font-weight: 800;
-    text-align: center;
-    font-size: clamp(1.5rem, 4vw, 2.8rem);
-    color: white;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: clip;
-    text-shadow: 1px 1px 4px rgba(0,0,0,0.7);
-    padding: 0.5rem 1rem;
-    margin: 1rem auto;
-}}
-
 
     </style>
     """
@@ -80,7 +65,21 @@ set_background("BodhaImage.png")  # ✅ Must be above st.title
 
 
 # 🏷️ App Title
-st.markdown('<h1>BodhaAI – Generate. Evaluate. Elevate.</h1>', unsafe_allow_html=True)
+st.markdown("""
+<div style='text-align: center;'>
+    <h1 style='
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: clip;
+        font-size: clamp(1.5rem, 4vw, 3rem);
+        font-weight: 800;
+        color: white;
+        text-shadow: 1px 1px 4px rgba(0,0,0,0.7);
+        margin: 1rem 0;
+    '>BodhaAI – Generate. Evaluate. Elevate.</h1>
+</div>
+""", unsafe_allow_html=True)
+
 
 
 # 📤 Upload
