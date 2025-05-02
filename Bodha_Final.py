@@ -53,7 +53,7 @@ def set_background(image_file):
         background-color: transparent !important;
         }}
 
-    h1 {
+    h1 {{
     display: block;
     width: 100%;
     font-weight: 800;
@@ -64,7 +64,7 @@ def set_background(image_file):
     white-space: nowrap;
     overflow: hidden;
     text-overflow: clip;
-}
+}}
 
     </style>
     """
