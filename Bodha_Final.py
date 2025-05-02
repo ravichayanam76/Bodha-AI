@@ -9,7 +9,7 @@ from pathlib import Path
 import base64
 
 # 🔐 Gemini API key
-genai.configure(api_key="AIzaSyCK5pE_lF_Ke7oS7euv-JyWJDOMnKUBCSY")  # <-- Replace with your actual API Key
+genai.configure(api_key=st.secrets["gemini_api_key"])
 
 # 📘 Streamlit Config
 st.set_page_config(page_title="Smart Exam Generator", layout="centered")
