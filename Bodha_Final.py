@@ -12,7 +12,7 @@ import base64
 genai.configure(api_key="AIzaSyCK5pE_lF_Ke7oS7euv-JyWJDOMnKUBCSY")  # <-- Replace with your actual API Key
 
 # 📘 Streamlit Config
-st.set_page_config(page_title="Smart Exam Generator", layout="wide")
+st.set_page_config(page_title="Smart Exam Generator", layout="centered")
 
 def set_background(image_file):
     image_path = Path(__file__).parent / image_file
