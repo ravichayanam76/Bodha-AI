@@ -66,19 +66,27 @@ set_background("BodhaImage.png")  # ✅ Must be above st.title
 
 # 🏷️ App Title
 st.markdown("""
-<div style='text-align: center;'>
+<div style='
+    width: 100vw;
+    position: relative;
+    left: calc(-50vw + 50%);
+    text-align: center;
+    margin-bottom: 1rem;
+'>
     <h1 style='
+        display: inline-block;
         white-space: nowrap;
-        overflow: hidden;
-        text-overflow: clip;
         font-size: clamp(1.5rem, 4vw, 3rem);
         font-weight: 800;
         color: white;
         text-shadow: 1px 1px 4px rgba(0,0,0,0.7);
-        margin: 1rem 0;
-    '>BodhaAI – Generate. Evaluate. Elevate.</h1>
+        margin: 0 auto;
+    '>
+        BodhaAI – Generate. Evaluate. Elevate.
+    </h1>
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
