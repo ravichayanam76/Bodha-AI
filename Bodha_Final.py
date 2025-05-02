@@ -53,17 +53,19 @@ def set_background(image_file):
         background-color: transparent !important;
         }}
 
-    h1 {{
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    font-size: 1rem;
+    h1 {
+    display: block;
+    width: 100%;
+    font-weight: 800;
     text-align: center;
-    font-weight: 600;
+    font-size: clamp(1.6rem, 4vw, 2.4rem); /* responsive */
     color: white;
     text-shadow: 1px 1px 4px rgba(0,0,0,0.7);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: clip;
+}
 
-    }}
     </style>
     """
     st.markdown(css, unsafe_allow_html=True)
