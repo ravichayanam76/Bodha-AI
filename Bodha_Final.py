@@ -54,17 +54,20 @@ def set_background(image_file):
         }}
 
     h1 {{
-    display: block;
-    width: 100%;
+    display: inline-block;
+    max-width: 100%;
     font-weight: 800;
     text-align: center;
-    font-size: clamp(1.6rem, 4vw, 2.4rem); /* responsive */
+    font-size: clamp(1.5rem, 4vw, 2.8rem);
     color: white;
-    text-shadow: 1px 1px 4px rgba(0,0,0,0.7);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: clip;
+    text-shadow: 1px 1px 4px rgba(0,0,0,0.7);
+    padding: 0.5rem 1rem;
+    margin: 1rem auto;
 }}
+
 
     </style>
     """
@@ -77,7 +80,8 @@ set_background("BodhaImage.png")  # ✅ Must be above st.title
 
 
 # 🏷️ App Title
-st.title("BodhaAI – Generate. Evaluate. Elevate.")
+st.markdown('<h1>BodhaAI – Generate. Evaluate. Elevate.</h1>', unsafe_allow_html=True)
+
 
 # 📤 Upload
 uploaded_file = st.file_uploader("Upload your textbook or PDF:", type=["pdf"])
