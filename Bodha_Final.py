@@ -57,7 +57,7 @@ def set_background(image_file):
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    font-size: 2rem;
+    font-size: 1rem;
     text-align: center;
     font-weight: 800;
     color: white;
