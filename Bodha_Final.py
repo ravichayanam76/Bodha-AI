@@ -59,7 +59,7 @@ def set_background(image_file):
     text-overflow: ellipsis;
     font-size: 1rem;
     text-align: center;
-    font-weight: 800;
+    font-weight: 600;
     color: white;
     text-shadow: 1px 1px 4px rgba(0,0,0,0.7);
 
