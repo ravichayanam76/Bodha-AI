@@ -154,6 +154,36 @@ Answer: <Correct Option Letter>
 
 Q2. ...
 """
+
+    elif q_type == "True/False":
+        prompt = f"""
+You are a question paper generator.
+
+From the following content, generate {num_questions} {difficulty} level **True/False** questions and clearly indicate the **correct option** for each question.
+
+
+Each question should be followed by the options:
+
+True  
+False
+
+
+---CONTENT START---
+{text}
+---CONTENT END---
+
+Provide output in the following format (with spacing between lines):
+
+Q1. <Question text>
+
+True  
+False  
+
+Answer: <Answer>
+
+Q2. ...
+"""
+        
     else:
         prompt = f"""
 You are a question paper generator.
@@ -267,7 +297,7 @@ if uploaded_file is not None:
 # 📥 Display Outputs
 if st.session_state.questions:
     st.success("✅ Question Paper Generated Successfully")
-    st.text_area("📄 View the Question Paper", st.session_state.questions, height=500)
+    st.text_area("📄 View the Question Paper", st.session_state.questions, height=500,disabled = True)
 
     st.download_button("📥 Download Question Paper", st.session_state.questions.encode("utf-8"), "Question_Paper.txt")
 
