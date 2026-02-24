@@ -37,8 +37,11 @@ def set_background(image_file):
         .stApp {{
             background-image: url("data:image/png;base64,{encoded}");
             background-size: cover;
+            background-repeat: no-repeat;
+            background-position: center center;
             background-attachment: fixed;
         }}
+
         section.main > div {{
             background-color: rgba(255, 255, 255, 0.9);
             padding: 2rem !important;
