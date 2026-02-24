@@ -48,10 +48,11 @@ def set_background(image_file):
             border-radius: 15px !important;
         }}
 
-        /* Ensure text is visible against light background */
-        .stMarkdown, p, label, .stText {{
-            color: #1E293B !important;
+        /* 2. ALL TEXT: Force global text, labels, and markdown to White */
+        .stMarkdown, p, label, .stText, [data-testid="stMarkdownContainer"] p {{
+            color: #FFFFFF !important;
         }}
+
         .stButton>button {{
             width: 100%;
             background: linear-gradient(90deg, #1E3A8A 0%, #3B82F6 100%);
