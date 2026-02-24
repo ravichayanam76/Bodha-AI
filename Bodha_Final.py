@@ -57,12 +57,12 @@ def set_background(image_file):
         }}
 
         /* FIX 2: Radio button options (Student/Examiner) to Black */
-        [data-testid="stSidebar"] div[role="radiogroup"] label p {{
+        [data-testid="stSidebar"] {{
             color: #000000 !important;
         }}
 
         /* 2. ALL TEXT: Force global text, labels, and markdown to White */
-        .stMarkdown, p, .stText, [data-testid="stMarkdownContainer"] p {{
+        .stMarkdown, p, label, .stText, [data-testid="stMarkdownContainer"] p {{
             color: #FFFFFF !important;
         }}
 
