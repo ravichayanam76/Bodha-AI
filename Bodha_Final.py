@@ -153,11 +153,20 @@ def parse_generated_questions(raw_text):
     return questions
 
 # 🤖 Gemini Generator
+@st.cache_data(show_spinner=False, ttl=3600) # Cache results for 1 hour
 def generate_questions(text, difficulty, num, q_type):
     model = genai.GenerativeModel("gemini-2.5-flash")
     prompt = f"""
     Generate {num} {difficulty} level {q_type} questions based on this text.
-    
+    try:
+        response = model.generate_content(prompt)
+        return response.text
+    except Exception as e:
+        # Check specifically for Quota/Rate Limit errors
+        if "429" in str(e) or "ResourceExhausted" in str(e):
+            return "LIMIT_ERROR"
+        return f"AI_ERROR: {str(e)}"
+        
     FORMAT RULES:
     1. Start each question with "Q: "
     2. For MCQ, provide 4 options starting with A), B), C), D).
