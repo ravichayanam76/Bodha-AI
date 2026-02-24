@@ -156,7 +156,8 @@ if st.session_state.quiz_data:
         user_responses = {}
         
         for i, item in enumerate(st.session_state.quiz_data):
-            st.write(f"**Question {i+1}:** {item['question']}")
+           # st.write(f"**Question {i+1}:** {item['question']}")
+            st.markdown(f"<p style='color: white;'><strong>Question {i+1}:</strong> {item['question']}</p>", unsafe_allow_html=True)
             user_responses[i] = st.radio("Choose one:", item['options'], key=f"q{i}", label_visibility="collapsed")
             st.write("---")
             
