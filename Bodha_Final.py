@@ -43,11 +43,11 @@ def set_background(image_file):
         }}
 
         section.main > div {{
-            background-color: rgba(255, 255, 255, 0.9);
+            background-color: rgba(255, 255, 255, 0.85); /* Slight white overlay for readability */
             padding: 2rem !important;
             border-radius: 15px !important;
-            color: #1E293B !important;
         }}
+
         /* Ensure text is visible against light background */
         .stMarkdown, p, label, .stText {{
             color: #1E293B !important;
