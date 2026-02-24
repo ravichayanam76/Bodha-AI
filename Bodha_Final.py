@@ -25,17 +25,43 @@ def set_background(image_file):
         .stApp {{
             background-image: url("data:image/png;base64,{encoded}");
             background-size: cover;
-            background-repeat: no-repeat;
-            background-position: center center;
             background-attachment: fixed;
         }}
-        [data-testid="stHeader"], header, .block-container {{
-            background-color: transparent !important;
-        }}
+        
+        /* 1. DARK CARD: Change background to dark so white text is visible */
         section.main > div {{
-            background-color: rgba(255, 255, 255, 0.85); /* Slight white overlay for readability */
-            padding: 2rem !important;
-            border-radius: 15px !important;
+            background-color: rgba(15, 23, 42, 0.9); /* Dark Slate/Navy */
+            padding: 3rem !important;
+            border-radius: 20px !important;
+            color: white !important;
+        }}
+
+        /* 2. ALL TEXT: Force global text, labels, and markdown to White */
+        .stMarkdown, p, label, .stText, [data-testid="stMarkdownContainer"] p {{
+            color: #FFFFFF !important;
+        }}
+
+        /* 3. QUESTIONS: Styling the question boxes with white text */
+        .question-style {{
+            background-color: rgba(255, 255, 255, 0.1); /* Subtle glass effect */
+            padding: 15px;
+            border-left: 6px solid #3B82F6; /* Bright blue accent */
+            border-radius: 8px;
+            color: #FFFFFF !important;
+            font-weight: 600;
+        }}
+
+        /* 4. SCORE: Making the Metric (Final Score) White */
+        [data-testid="stMetricValue"] {{
+            color: #FFFFFF !important;
+        }}
+        [data-testid="stMetricLabel"] p {{
+            color: #CBD5E1 !important; /* Soft light gray for the label */
+        }}
+
+        /* 5. INPUTS: Making the dropdowns/sliders readable in dark mode */
+        .stSelectbox label, .stSlider label {{
+            color: white !important;
         }}
         </style>
         """
