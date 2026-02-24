@@ -22,6 +22,14 @@ def set_background(image_file):
         <style>
         .stApp {{ background-image: url("data:image/png;base64,{encoded}"); background-size: cover; }}
         .stMarkdown, p, label {{ color: #FFFFFF !important; }}
+        /* --- CHANGE STARTS HERE: SIDEBAR BLACK TEXT --- */
+        [data-testid="stSidebar"] .stMarkdown, 
+        [data-testid="stSidebar"] p, 
+        [data-testid="stSidebar"] label,
+        [data-testid="stSidebar"] .stRadio div {{
+            color: #000000 !important;
+        }}
+        /* --- CHANGE ENDS HERE --- */
         .stButton>button {{ width: 100%; background: linear-gradient(90deg, #1E3A8A 0%, #3B82F6 100%); color: white; }}
         div[data-testid="stForm"] {{ background: rgba(0,0,0,0.6); padding: 20px; border-radius: 15px; }}
         </style>
