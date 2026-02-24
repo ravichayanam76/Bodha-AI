@@ -83,24 +83,13 @@ def set_background(image_file):
             color: #FFFFFF !important;
         }}
 
-        /* 3. FORCE SUBMIT BUTTON TEXT TO BLACK */
-        /* We target every possible internal tag (div, p, span) inside the button */
-        button[kind="primary"] p, 
-        button[kind="secondary"] p, 
-        .stButton button p,
-        .stButton button span,
-        .stButton button div {{
-            color: black !important;
-            -webkit-text-fill-color: black !important;
-        }}
-
-        /* 4. Ensure the Button Background is light enough to see black text */
         .stButton>button {{
             width: 100%;
-            background: #CBD5E1 !important; /* Light Gray */
-            border: 2px solid #1E3A8A !important;
-            border-radius: 8px;
+            background: linear-gradient(90deg, #1E3A8A 0%, #3B82F6 100%);
+            color: white !important;
+            font-weight: bold;
         }}
+
         </style>
         """
         st.markdown(css, unsafe_allow_html=True)
