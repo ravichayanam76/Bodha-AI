@@ -56,9 +56,26 @@ def set_background(image_file):
             color: #000000 !important;
         }}
 
-        /* FIX 2: Radio button options (Student/Examiner) to Black */
+        /* 1. FORCE SIDEBAR TEXT TO BLACK */
+        /* Targets 'Select Role', 'Student', and 'Examiner' */
         [data-testid="stSidebar"] {{
             color: #000000 !important;
+        }}
+        
+        [data-testid="stSidebar"] .stMarkdown p, 
+        [data-testid="stSidebar"] label, 
+        [data-testid="stSidebar"] span,
+        [data-testid="stSidebar"] div[data-testid="stWidgetLabel"] p {{
+            color: #000000 !important;
+            -webkit-text-fill-color: #000000 !important;
+        }}
+
+        /* 2. FORCE SUBMIT BUTTON TEXT TO BLACK */
+        /* Targets the text inside the button */
+        .stButton button div p, 
+        .stButton button {{
+            color: #000000 !important;
+            -webkit-text-fill-color: #000000 !important;
         }}
 
         /* 2. ALL TEXT: Force global text, labels, and markdown to White */
