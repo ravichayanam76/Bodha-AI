@@ -46,7 +46,6 @@ def set_background(image_file):
             color: white !important;
             font-weight: bold;
         }}
-        /* SIDEBAR BLACK TEXT */
         [data-testid="stSidebar"] .stMarkdown, 
         [data-testid="stSidebar"] p, 
         [data-testid="stSidebar"] label,
@@ -72,6 +71,8 @@ def clean_text(text):
     text = re.sub(r'\n+', '\n', text)
     return text.strip()
 
+# 1. ADDED CACHE TO PDF EXTRACTION
+@st.cache_data(show_spinner="Processing PDF content...")
 def extract_chapters_from_pdf(file_path):
     full_text = ""
     with pdfplumber.open(file_path) as pdf:
@@ -108,22 +109,26 @@ def parse_generated_questions(raw_text, q_type):
             questions.append({"question": q_text, "options": options, "answer": correct_ans})
     return questions
 
+# 2. ADDED CACHE AND QUOTA EXCEPTION HANDLING
+@st.cache_data(show_spinner="AI is generating questions...")
 def generate_questions(text, difficulty, num, q_type):
     model = genai.GenerativeModel("gemini-2.5-flash") 
     prompt = f"Generate {num} {difficulty} level {q_type} questions. Format: Q: [Question] \n Options (A,B,C,D or True/False) \n Answer: [Correct Letter/Word]. Text: {text[:4000]}"
     try:
         response = model.generate_content(prompt)
         return response.text
-    except Exception as e: return f"ERROR: {str(e)}"
+    except Exception as e:
+        # Catch the 429 Quota Error specifically
+        if "429" in str(e) or "quota" in str(e).lower():
+            return "ERROR_429"
+        return f"ERROR: {str(e)}"
 
 # --- UI LAYOUT ---
 st.markdown("<h1 style='text-align: center; color: #1E3A8A;'>BodhaAI Exam Portal</h1>", unsafe_allow_html=True)
 
-# Role Switcher in Sidebar
 st.sidebar.title("Navigation")
 new_role = st.sidebar.radio("Select Role:", ["Student", "Examiner"])
 
-# If user switches away from Examiner, lock the panel
 if new_role == "Student":
     st.session_state.role = "Student"
     st.session_state.is_authenticated = False
@@ -134,8 +139,7 @@ else:
 if st.session_state.role == "Examiner":
     if not st.session_state.is_authenticated:
         st.subheader("🔒 Examiner Login")
-        # Change "admin123" to your preferred password
-        pwd_input = st.text_input("Enter Password to Access Dashboard:", type="password")
+        pwd_input = st.text_input("Enter Password:", type="password")
         if st.button("Login"):
             if pwd_input == "admin123":
                 st.session_state.is_authenticated = True
@@ -143,10 +147,15 @@ if st.session_state.role == "Examiner":
             else:
                 st.error("Incorrect password!")
     else:
-        # Authenticated Examiner Dashboard
         st.subheader("🛠️ Examiner Dashboard")
-        st.sidebar.success("Authenticated")
         
+        # 3. ADDED CLEAR CACHE BUTTON
+        if st.sidebar.button("🔄 Reset & Clear Cache"):
+            st.cache_data.clear()
+            st.session_state.quiz_data = []
+            st.sidebar.success("Cache Cleared!")
+            st.rerun()
+
         uploaded_file = st.file_uploader("Upload Exam PDF", type=["pdf"])
         col1, col2 = st.columns(2)
         with col1:
@@ -163,11 +172,15 @@ if st.session_state.role == "Examiner":
                 st.session_state.full_text = full_text
             
             raw_output = generate_questions(full_text, diff, num_q, q_type)
-            if "ERROR" not in raw_output:
+            
+            # Handling the 429 Quota Message
+            if raw_output == "ERROR_429":
+                st.error("⚠️ Quota Exceeded: You have sent too many requests to Gemini. Please wait 60 seconds or check your API billing limits.")
+            elif "ERROR" in raw_output:
+                st.error(f"AI Error: {raw_output}")
+            else:
                 st.session_state.quiz_data = parse_generated_questions(raw_output, q_type)
                 st.success("✅ Exam published! Switch to Student mode.")
-            else:
-                st.error(raw_output)
 
 # --- STUDENT VIEW ---
 elif st.session_state.role == "Student":
