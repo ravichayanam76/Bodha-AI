@@ -16,7 +16,6 @@ st.set_page_config(page_title="BodhaAI - Smart Exam", layout="centered")
 # --- UI STYLING ---
 def set_background(image_file):
     try:
-        # Assuming the image is in the same directory
         encoded = base64.b64encode(open(image_file, "rb").read()).decode()
         css = f"""
         <style>
@@ -31,55 +30,29 @@ def set_background(image_file):
             background-color: transparent !important;
         }}
         section.main > div {{
-            background-color: rgba(255, 255, 255, 0.85); /* Slight white overlay for readability */
+            background-color: rgba(255, 255, 255, 0.85);
             padding: 2rem !important;
             border-radius: 15px !important;
         }}
-
-
-        /* 2. ALL TEXT: Force global text, labels, and markdown to White */
         .stMarkdown, p, label, .stText, [data-testid="stMarkdownContainer"] p {{
             color: #FFFFFF !important;
         }}
-
-        /* 3. QUESTIONS: Styling the question boxes with white text */
-        .question-style {{
-            background-color: rgba(255, 255, 255, 0.1); /* Subtle glass effect */
-            padding: 15px;
-            border-left: 6px solid #3B82F6; /* Bright blue accent */
-            border-radius: 8px;
-            color: #FFFFFF !important;
-            font-weight: 600;
-        }}
-
-        /* 4. SCORE: Making the Metric (Final Score) White */
-        [data-testid="stMetricValue"] {{
-            color: #FFFFFF !important;
-        }}
-        [data-testid="stMetricLabel"] p {{
-            color: #CBD5E1 !important; /* Soft light gray for the label */
-        }}
-
-        /* 5. INPUTS: Making the dropdowns/sliders readable in dark mode */
-        .stSelectbox label, .stSlider label {{
-            color: white !important;
-        }}
-
+        [data-testid="stMetricValue"] {{ color: #FFFFFF !important; }}
+        [data-testid="stMetricLabel"] p {{ color: #CBD5E1 !important; }}
+        .stSelectbox label, .stSlider label {{ color: white !important; }}
         .stButton>button {{
             width: 100%;
             background: linear-gradient(90deg, #1E3A8A 0%, #3B82F6 100%);
             color: white !important;
             font-weight: bold;
         }}
-
-        /* --- CHANGE STARTS HERE: SIDEBAR BLACK TEXT --- */
+        /* SIDEBAR BLACK TEXT */
         [data-testid="stSidebar"] .stMarkdown, 
         [data-testid="stSidebar"] p, 
         [data-testid="stSidebar"] label,
         [data-testid="stSidebar"] .stRadio div {{
             color: #000000 !important;
         }}
-        /* --- CHANGE ENDS HERE --- */
         </style>
         """
         st.markdown(css, unsafe_allow_html=True)
@@ -91,7 +64,8 @@ set_background("BodhaImage.png")
 if 'quiz_data' not in st.session_state: st.session_state.quiz_data = []
 if 'chapters' not in st.session_state: st.session_state.chapters = {}
 if 'full_text' not in st.session_state: st.session_state.full_text = ""
-if 'role' not in st.session_state: st.session_state.role = "Examiner"
+if 'role' not in st.session_state: st.session_state.role = "Student"
+if 'is_authenticated' not in st.session_state: st.session_state.is_authenticated = False
 
 # --- UTILS ---
 def clean_text(text):
@@ -104,12 +78,10 @@ def extract_chapters_from_pdf(file_path):
         for page in pdf.pages:
             page_text = page.extract_text()
             if page_text: full_text += page_text + "\n"
-    
     full_text = clean_text(full_text)
     pattern = re.compile(r'(Chapter\s+(\d+))\b', re.IGNORECASE)
     matches = list(pattern.finditer(full_text))
     chapter_map = {}
-
     if not matches:
         chapter_map["Full Content"] = full_text
     else:
@@ -128,7 +100,6 @@ def parse_generated_questions(raw_text, q_type):
         q_text = lines[0]
         options = [l for l in lines if re.match(r'^[A-D][\)\.]', l) or l in ["True", "False"]]
         answer_line = [l for l in lines if any(x in l for x in ["Answer:", "Correct:"])]
-        
         if q_text and answer_line:
             correct_ans = answer_line[0].split(":")[-1].strip()
             if q_type == "MCQ":
@@ -138,7 +109,7 @@ def parse_generated_questions(raw_text, q_type):
     return questions
 
 def generate_questions(text, difficulty, num, q_type):
-    model = genai.GenerativeModel("gemini-2.5-flash") # Updated to 1.5
+    model = genai.GenerativeModel("gemini-1.5-flash") 
     prompt = f"Generate {num} {difficulty} level {q_type} questions. Format: Q: [Question] \n Options (A,B,C,D or True/False) \n Answer: [Correct Letter/Word]. Text: {text[:4000]}"
     try:
         response = model.generate_content(prompt)
@@ -146,44 +117,63 @@ def generate_questions(text, difficulty, num, q_type):
     except Exception as e: return f"ERROR: {str(e)}"
 
 # --- UI LAYOUT ---
-st.markdown("<h1 style='text-align: center;'>BodhaAI Exam Portal</h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align: center; color: #1E3A8A;'>BodhaAI Exam Portal</h1>", unsafe_allow_html=True)
 
 # Role Switcher in Sidebar
 st.sidebar.title("Navigation")
-st.session_state.role = st.sidebar.radio("Select Role:", ["Examiner", "Student"])
+new_role = st.sidebar.radio("Select Role:", ["Student", "Examiner"])
+
+# If user switches away from Examiner, lock the panel
+if new_role == "Student":
+    st.session_state.role = "Student"
+    st.session_state.is_authenticated = False
+else:
+    st.session_state.role = "Examiner"
 
 # --- EXAMINER VIEW ---
 if st.session_state.role == "Examiner":
-    st.subheader("🛠️ Examiner Dashboard")
-    uploaded_file = st.file_uploader("Upload Exam PDF", type=["pdf"])
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        q_type = st.selectbox("Type", ["MCQ", "True/False"])
-        diff = st.selectbox("Difficulty", ["Easy", "Medium", "Hard"])
-    with col2:
-        num_q = st.slider("Number of Questions", 1, 50, 5)
-
-    if uploaded_file and st.button("Generate & Publish Exam"):
-        with tempfile.NamedTemporaryFile(delete=False) as tmp:
-            tmp.write(uploaded_file.read())
-            chapters, full_text = extract_chapters_from_pdf(tmp.name)
-            st.session_state.chapters = chapters
-            st.session_state.full_text = full_text
+    if not st.session_state.is_authenticated:
+        st.subheader("🔒 Examiner Login")
+        # Change "admin123" to your preferred password
+        pwd_input = st.text_input("Enter Password to Access Dashboard:", type="password")
+        if st.button("Login"):
+            if pwd_input == "admin123":
+                st.session_state.is_authenticated = True
+                st.rerun()
+            else:
+                st.error("Incorrect password!")
+    else:
+        # Authenticated Examiner Dashboard
+        st.subheader("🛠️ Examiner Dashboard")
+        st.sidebar.success("Authenticated")
         
-        raw_output = generate_questions(full_text, diff, num_q, q_type)
-        if "ERROR" not in raw_output:
-            st.session_state.quiz_data = parse_generated_questions(raw_output, q_type)
-            st.success("✅ Exam generated! Switch to Student mode to begin.")
-        else:
-            st.error(raw_output)
+        uploaded_file = st.file_uploader("Upload Exam PDF", type=["pdf"])
+        col1, col2 = st.columns(2)
+        with col1:
+            q_type = st.selectbox("Type", ["MCQ", "True/False"])
+            diff = st.selectbox("Difficulty", ["Easy", "Medium", "Hard"])
+        with col2:
+            num_q = st.slider("Number of Questions", 1, 50, 5)
+
+        if uploaded_file and st.button("Generate & Publish Exam"):
+            with tempfile.NamedTemporaryFile(delete=False) as tmp:
+                tmp.write(uploaded_file.read())
+                chapters, full_text = extract_chapters_from_pdf(tmp.name)
+                st.session_state.chapters = chapters
+                st.session_state.full_text = full_text
+            
+            raw_output = generate_questions(full_text, diff, num_q, q_type)
+            if "ERROR" not in raw_output:
+                st.session_state.quiz_data = parse_generated_questions(raw_output, q_type)
+                st.success("✅ Exam published! Switch to Student mode.")
+            else:
+                st.error(raw_output)
 
 # --- STUDENT VIEW ---
 elif st.session_state.role == "Student":
     st.subheader("✍️ Student Examination")
-    
     if not st.session_state.quiz_data:
-        st.info("No exam is currently available. Please wait for the examiner to upload.")
+        st.info("No exam is currently available. Please wait for the examiner.")
     else:
         with st.form("exam_form"):
             user_responses = {}
@@ -193,17 +183,13 @@ elif st.session_state.role == "Student":
                 st.write("---")
             
             submitted = st.form_submit_button("Submit Final Answers")
-            
             if submitted:
                 score = 0
                 for i, item in enumerate(st.session_state.quiz_data):
-                    # Check if answer letter is in the selected option
                     if item['answer'] in user_responses[i]:
                         score += 1
-                
                 percent = (score / len(st.session_state.quiz_data)) * 100
                 st.metric("Your Result", f"{percent}%", f"{score}/{len(st.session_state.quiz_data)}")
-                
                 if percent >= 70:
                     st.balloons()
                     st.success("Congratulations! You passed.")
