@@ -167,8 +167,8 @@ def generate_questions(text, difficulty, num, q_type):
     TEXT: {text[:4000]} 
     """
     try:
-    response = model.generate_content(prompt)
-    return response.text
+        response = model.generate_content(prompt)
+        return response.text
     except Exception as e:
         # Check specifically for Quota/Rate Limit errors
         if "429" in str(e) or "ResourceExhausted" in str(e):
