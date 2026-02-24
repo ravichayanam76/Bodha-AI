@@ -62,7 +62,7 @@ def set_background(image_file):
         }}
 
         /* 2. ALL TEXT: Force global text, labels, and markdown to White */
-        .stMarkdown, p, label, .stText, [data-testid="stMarkdownContainer"] p {{
+        .stMarkdown, p, .stText, [data-testid="stMarkdownContainer"] p {{
             color: #FFFFFF !important;
         }}
 
