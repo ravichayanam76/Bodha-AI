@@ -60,7 +60,7 @@ if 'full_text' not in st.session_state:
 uploaded_file = st.file_uploader("Upload your textbook or PDF:", type=["pdf"])
 question_type = st.selectbox("Select Question Type:", ["MCQ", "True/False"])
 difficulty = st.selectbox("Select Difficulty Level:", ["Easy", "Medium", "Hard"])
-num_questions = st.slider("Questions per selection:", 1, 20, 5)
+num_questions = st.slider("Questions per selection:", 1, 50, 5)
 
 # 🧹 Clean text utility
 def clean_text(text):
