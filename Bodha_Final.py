@@ -66,6 +66,14 @@ def set_background(image_file):
         .stSelectbox label, .stSlider label {{
             color: white !important;
         }}
+
+        .stButton>button {{
+            width: 100%;
+            background: linear-gradient(90deg, #1E3A8A 0%, #3B82F6 100%);
+            color: white !important;
+            font-weight: bold;
+        }}
+
         </style>
         """
         st.markdown(css, unsafe_allow_html=True)
