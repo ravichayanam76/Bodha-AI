@@ -43,7 +43,7 @@ def set_background(image_file):
         .stButton>button {{
             width: 100%;
             background: linear-gradient(90deg, #1E3A8A 0%, #3B82F6 100%);
-            color: black !important;
+            color: white !important;
             font-weight: bold;
         }}
         [data-testid="stSidebar"] .stMarkdown, 
