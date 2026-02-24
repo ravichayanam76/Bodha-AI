@@ -20,8 +20,58 @@ def set_background(image_file):
         encoded = base64.b64encode(open(image_file, "rb").read()).decode()
         css = f"""
         <style>
-        .stApp {{ background-image: url("data:image/png;base64,{encoded}"); background-size: cover; }}
-        .stMarkdown, p, label {{ color: #FFFFFF !important; }}
+        .stApp {{
+            background-image: url("data:image/png;base64,{encoded}");
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-position: center center;
+            background-attachment: fixed;
+        }}
+        [data-testid="stHeader"], header, .block-container {{
+            background-color: transparent !important;
+        }}
+        section.main > div {{
+            background-color: rgba(255, 255, 255, 0.85); /* Slight white overlay for readability */
+            padding: 2rem !important;
+            border-radius: 15px !important;
+        }}
+
+
+        /* 2. ALL TEXT: Force global text, labels, and markdown to White */
+        .stMarkdown, p, label, .stText, [data-testid="stMarkdownContainer"] p {{
+            color: #FFFFFF !important;
+        }}
+
+        /* 3. QUESTIONS: Styling the question boxes with white text */
+        .question-style {{
+            background-color: rgba(255, 255, 255, 0.1); /* Subtle glass effect */
+            padding: 15px;
+            border-left: 6px solid #3B82F6; /* Bright blue accent */
+            border-radius: 8px;
+            color: #FFFFFF !important;
+            font-weight: 600;
+        }}
+
+        /* 4. SCORE: Making the Metric (Final Score) White */
+        [data-testid="stMetricValue"] {{
+            color: #FFFFFF !important;
+        }}
+        [data-testid="stMetricLabel"] p {{
+            color: #CBD5E1 !important; /* Soft light gray for the label */
+        }}
+
+        /* 5. INPUTS: Making the dropdowns/sliders readable in dark mode */
+        .stSelectbox label, .stSlider label {{
+            color: white !important;
+        }}
+
+        .stButton>button {{
+            width: 100%;
+            background: linear-gradient(90deg, #1E3A8A 0%, #3B82F6 100%);
+            color: white !important;
+            font-weight: bold;
+        }}
+
         /* --- CHANGE STARTS HERE: SIDEBAR BLACK TEXT --- */
         [data-testid="stSidebar"] .stMarkdown, 
         [data-testid="stSidebar"] p, 
@@ -30,8 +80,6 @@ def set_background(image_file):
             color: #000000 !important;
         }}
         /* --- CHANGE ENDS HERE --- */
-        .stButton>button {{ width: 100%; background: linear-gradient(90deg, #1E3A8A 0%, #3B82F6 100%); color: white; }}
-        div[data-testid="stForm"] {{ background: rgba(0,0,0,0.6); padding: 20px; border-radius: 15px; }}
         </style>
         """
         st.markdown(css, unsafe_allow_html=True)
