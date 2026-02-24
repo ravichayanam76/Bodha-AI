@@ -48,6 +48,19 @@ def set_background(image_file):
             border-radius: 15px !important;
         }}
 
+        /* FIX 1: Navigation and Radio Button text to Black */
+        [data-testid="stSidebar"] .stMarkdown p, 
+        [data-testid="stSidebar"] label, 
+        [data-testid="stSidebar"] div[data-testid="stWidgetLabel"] p,
+        [data-testid="stWidgetLabel"] p {{
+            color: #000000 !important;
+        }}
+
+        /* FIX 2: Radio button options (Student/Examiner) to Black */
+        [data-testid="stSidebar"] div[role="radiogroup"] label p {{
+            color: #000000 !important;
+        }}
+
         /* 2. ALL TEXT: Force global text, labels, and markdown to White */
         .stMarkdown, p, label, .stText, [data-testid="stMarkdownContainer"] p {{
             color: #FFFFFF !important;
@@ -56,7 +69,7 @@ def set_background(image_file):
         .stButton>button {{
             width: 100%;
             background: linear-gradient(90deg, #1E3A8A 0%, #3B82F6 100%);
-            color: white !important;
+            color: #000000 !important;
             font-weight: bold;
         }}
         </style>
