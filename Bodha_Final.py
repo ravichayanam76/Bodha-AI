@@ -4,7 +4,6 @@ import google.generativeai as genai
 import tempfile
 import re
 import os
-from PIL import Image
 from pathlib import Path
 import base64
 
@@ -14,95 +13,33 @@ genai.configure(api_key=st.secrets["gemini_api_key"])
 # 📘 Streamlit Config
 st.set_page_config(page_title="BodhaAI - Smart Exam", layout="centered")
 
+# --- UI STYLING ---
 def set_background(image_file):
     try:
-        image_path = Path(__file__).parent / image_file
-        with open(image_path, "rb") as f:
-            encoded = base64.b64encode(f.read()).decode()
-
+        # Assuming the image is in the same directory
+        encoded = base64.b64encode(open(image_file, "rb").read()).decode()
         css = f"""
         <style>
-        .stApp {{
-            background-image: url("data:image/png;base64,{encoded}");
-            background-size: cover;
-            background-repeat: no-repeat;
-            background-position: center center;
-            background-attachment: fixed;
-        }}
-        [data-testid="stHeader"], header, .block-container {{
-            background-color: transparent !important;
-        }}
-        section.main > div {{
-            background-color: rgba(255, 255, 255, 0.85); /* Slight white overlay for readability */
-            padding: 2rem !important;
-            border-radius: 15px !important;
-        }}
-
-
-        /* 2. ALL TEXT: Force global text, labels, and markdown to White */
-        .stMarkdown, p, label, .stText, [data-testid="stMarkdownContainer"] p {{
-            color: #FFFFFF !important;
-        }}
-
-        /* 3. QUESTIONS: Styling the question boxes with white text */
-        .question-style {{
-            background-color: rgba(255, 255, 255, 0.1); /* Subtle glass effect */
-            padding: 15px;
-            border-left: 6px solid #3B82F6; /* Bright blue accent */
-            border-radius: 8px;
-            color: #FFFFFF !important;
-            font-weight: 600;
-        }}
-
-        /* 4. SCORE: Making the Metric (Final Score) White */
-        [data-testid="stMetricValue"] {{
-            color: #FFFFFF !important;
-        }}
-        [data-testid="stMetricLabel"] p {{
-            color: #CBD5E1 !important; /* Soft light gray for the label */
-        }}
-
-        /* 5. INPUTS: Making the dropdowns/sliders readable in dark mode */
-        .stSelectbox label, .stSlider label {{
-            color: white !important;
-        }}
-
-        .stButton>button {{
-            width: 100%;
-            background: linear-gradient(90deg, #1E3A8A 0%, #3B82F6 100%);
-            color: white !important;
-            font-weight: bold;
-        }}
-
+        .stApp {{ background-image: url("data:image/png;base64,{encoded}"); background-size: cover; }}
+        .stMarkdown, p, label {{ color: #FFFFFF !important; }}
+        .stButton>button {{ width: 100%; background: linear-gradient(90deg, #1E3A8A 0%, #3B82F6 100%); color: white; }}
+        div[data-testid="stForm"] {{ background: rgba(0,0,0,0.6); padding: 20px; border-radius: 15px; }}
         </style>
         """
         st.markdown(css, unsafe_allow_html=True)
-    except:
-        pass
+    except: pass
 
 set_background("BodhaImage.png")
 
-# 🏷️ App Title
-st.markdown("<h1 style='text-align: center; color: #1E3A8A;'>BodhaAI – Generate. Evaluate. Elevate.</h1>", unsafe_allow_html=True)
+# --- SESSION STATE ---
+if 'quiz_data' not in st.session_state: st.session_state.quiz_data = []
+if 'chapters' not in st.session_state: st.session_state.chapters = {}
+if 'full_text' not in st.session_state: st.session_state.full_text = ""
+if 'role' not in st.session_state: st.session_state.role = "Examiner"
 
-# 🧠 Session State Init
-if 'quiz_data' not in st.session_state:
-    st.session_state.quiz_data = []
-if 'chapters' not in st.session_state:
-    st.session_state.chapters = {}
-if 'full_text' not in st.session_state:
-    st.session_state.full_text = ""
-
-# 📤 Upload & UI
-uploaded_file = st.file_uploader("Upload your textbook or PDF:", type=["pdf"])
-question_type = st.selectbox("Select Question Type:", ["MCQ", "True/False"])
-difficulty = st.selectbox("Select Difficulty Level:", ["Easy", "Medium", "Hard"])
-num_questions = st.slider("Questions per selection:", 1, 50, 5)
-
-# 🧹 Clean text utility
+# --- UTILS ---
 def clean_text(text):
     text = re.sub(r'\n+', '\n', text)
-    text = re.sub(r'\s{2,}', ' ', text)
     return text.strip()
 
 def extract_chapters_from_pdf(file_path):
@@ -117,111 +54,102 @@ def extract_chapters_from_pdf(file_path):
     matches = list(pattern.finditer(full_text))
     chapter_map = {}
 
-    for i in range(len(matches)):
-        start = matches[i].start()
-        end = matches[i + 1].start() if i + 1 < len(matches) else len(full_text)
-        chapter_map[matches[i].group(1)] = full_text[start:end].strip()
-
+    if not matches:
+        chapter_map["Full Content"] = full_text
+    else:
+        for i in range(len(matches)):
+            start = matches[i].start()
+            end = matches[i + 1].start() if i + 1 < len(matches) else len(full_text)
+            chapter_map[matches[i].group(1)] = full_text[start:end].strip()
     return chapter_map, full_text
 
-def parse_generated_questions(raw_text):
-    """Parses Gemini output into a list of structured dictionaries."""
+def parse_generated_questions(raw_text, q_type):
     questions = []
-    # Split by Q: followed by any number
     blocks = re.split(r'Q\d*[:.]\s*', raw_text)
-    
     for block in blocks:
         if not block.strip(): continue
         lines = [l.strip() for l in block.split('\n') if l.strip()]
-        
-        # Logic to find Question, Options, and Answer
         q_text = lines[0]
         options = [l for l in lines if re.match(r'^[A-D][\)\.]', l) or l in ["True", "False"]]
-        answer_line = [l for l in lines if "Answer:" in l or "Correct:" in l]
+        answer_line = [l for l in lines if any(x in l for x in ["Answer:", "Correct:"])]
         
         if q_text and answer_line:
             correct_ans = answer_line[0].split(":")[-1].strip()
-            # If MCQ, just get the letter (A, B, C, D)
-            if question_type == "MCQ":
-                correct_ans = re.search(r'[A-D]', correct_ans).group()
-                
-            questions.append({
-                "question": q_text,
-                "options": options,
-                "answer": correct_ans
-            })
+            if q_type == "MCQ":
+                match = re.search(r'[A-D]', correct_ans)
+                correct_ans = match.group() if match else correct_ans
+            questions.append({"question": q_text, "options": options, "answer": correct_ans})
     return questions
 
-# 🤖 Gemini Generator
-@st.cache_data(show_spinner=False, ttl=3600) # Cache results for 1 hour
 def generate_questions(text, difficulty, num, q_type):
-    model = genai.GenerativeModel("gemini-2.5-flash")
-    prompt = f"""
-    Generate {num} {difficulty} level {q_type} questions based on this text.
-    FORMAT RULES:
-    1. Start each question with "Q: "
-    2. For MCQ, provide 4 options starting with A), B), C), D).
-    3. For True/False, provide True and False as options.
-    4. End each question block with "Answer: <correct letter or word>"
-    
-    TEXT: {text[:4000]} 
-    """
+    model = genai.GenerativeModel("gemini-1.5-flash") # Updated to 1.5
+    prompt = f"Generate {num} {difficulty} level {q_type} questions. Format: Q: [Question] \n Options (A,B,C,D or True/False) \n Answer: [Correct Letter/Word]. Text: {text[:4000]}"
     try:
         response = model.generate_content(prompt)
         return response.text
-    except Exception as e:
-        # Check specifically for Quota/Rate Limit errors
-        if "429" in str(e) or "ResourceExhausted" in str(e):
-            return "LIMIT_ERROR"
-        return f"AI_ERROR: {str(e)}"
+    except Exception as e: return f"ERROR: {str(e)}"
 
-# 📜 Main Logic
-if uploaded_file:
-    if not st.session_state.full_text:
+# --- UI LAYOUT ---
+st.markdown("<h1 style='text-align: center;'>BodhaAI Exam Portal</h1>", unsafe_allow_html=True)
+
+# Role Switcher in Sidebar
+st.sidebar.title("Navigation")
+st.session_state.role = st.sidebar.radio("Select Role:", ["Examiner", "Student"])
+
+# --- EXAMINER VIEW ---
+if st.session_state.role == "Examiner":
+    st.subheader("🛠️ Examiner Dashboard")
+    uploaded_file = st.file_uploader("Upload Exam PDF", type=["pdf"])
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        q_type = st.selectbox("Type", ["MCQ", "True/False"])
+        diff = st.selectbox("Difficulty", ["Easy", "Medium", "Hard"])
+    with col2:
+        num_q = st.slider("Number of Questions", 1, 20, 5)
+
+    if uploaded_file and st.button("Generate & Publish Exam"):
         with tempfile.NamedTemporaryFile(delete=False) as tmp:
             tmp.write(uploaded_file.read())
             chapters, full_text = extract_chapters_from_pdf(tmp.name)
             st.session_state.chapters = chapters
             st.session_state.full_text = full_text
-
-    selected_ch = st.multiselect("Select Chapters:", list(st.session_state.chapters.keys()))
-    
-    if st.button("Generate Interactive Quiz"):
-        source_text = "\n".join([st.session_state.chapters[c] for c in selected_ch]) if selected_ch else st.session_state.full_text
-        raw_output = generate_questions(source_text, difficulty, num_questions, question_type)
-        if raw_output == "LIMIT_ERROR":
-            st.warning("⚠️ Rate limit reached. Please wait 60 seconds.")
-        elif "ERROR" in raw_output:
-            st.error("AI connection failed. Try again shortly.")
+        
+        raw_output = generate_questions(full_text, diff, num_q, q_type)
+        if "ERROR" not in raw_output:
+            st.session_state.quiz_data = parse_generated_questions(raw_output, q_type)
+            st.success("✅ Exam generated! Switch to Student mode to begin.")
         else:
-            st.session_state.quiz_data = parse_generated_questions(raw_output)
-            # Force a rerun to ensure the UI updates immediately
-            st.rerun()
+            st.error(raw_output)
 
-# 📝 Display Quiz
-if st.session_state.quiz_data:
-    st.divider()
-    with st.form("exam_form"):
-        st.subheader("Final Examination")
-        user_responses = {}
-        
-        for i, item in enumerate(st.session_state.quiz_data):
-            st.markdown(f"<p style='color: white;'><strong>Question {i+1}:</strong> {item['question']}</p>", unsafe_allow_html=True)
-            user_responses[i] = st.radio("Choose one:", item['options'], key=f"q{i}", label_visibility="collapsed")
-            st.write("---")
-            
-        submitted = st.form_submit_button("Submit Exam")
-        
-        if submitted:
-            score = 0
+# --- STUDENT VIEW ---
+elif st.session_state.role == "Student":
+    st.subheader("✍️ Student Examination")
+    
+    if not st.session_state.quiz_data:
+        st.info("No exam is currently available. Please wait for the examiner to upload.")
+    else:
+        with st.form("exam_form"):
+            user_responses = {}
             for i, item in enumerate(st.session_state.quiz_data):
-                # Check if first letter of choice matches answer
-                if user_responses[i].startswith(item['answer']):
-                    score += 1
-                    st.success(f"Q{i+1}: Correct!")
-                else:
-                    st.error(f"Q{i+1}: Wrong. Correct answer was: {item['answer']}")
+                st.markdown(f"**Q{i+1}: {item['question']}**")
+                user_responses[i] = st.radio(f"Select answer for Q{i+1}", item['options'], key=f"sq{i}")
+                st.write("---")
             
-            percent = (score / len(st.session_state.quiz_data)) * 100
-            st.metric("Final Score", f"{percent}%", f"{score}/{len(st.session_state.quiz_data)}")
-            if percent >= 70: st.balloons()
+            submitted = st.form_submit_button("Submit Final Answers")
+            
+            if submitted:
+                score = 0
+                for i, item in enumerate(st.session_state.quiz_data):
+                    # Check if answer letter is in the selected option
+                    if item['answer'] in user_responses[i]:
+                        score += 1
+                
+                percent = (score / len(st.session_state.quiz_data)) * 100
+                st.metric("Your Result", f"{percent}%", f"{score}/{len(st.session_state.quiz_data)}")
+                
+                if percent >= 70:
+                    st.balloons()
+                    st.success("Congratulations! You passed.")
+                else:
+                    st.warning("Keep studying and try again!")
