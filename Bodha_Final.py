@@ -25,16 +25,19 @@ def set_background(image_file):
         .stApp {{
             background-image: url("data:image/png;base64,{encoded}");
             background-size: cover;
+            background-repeat: no-repeat;
+            background-position: center center;
             background-attachment: fixed;
         }}
-        
-        /* 1. DARK CARD: Change background to dark so white text is visible */
-     /*   section.main > div {{
-            background-color: rgba(15, 23, 42, 0.9); /* Dark Slate/Navy */
-            padding: 3rem !important;
-            border-radius: 20px !important;
-            color: white !important;
-        }}*/
+        [data-testid="stHeader"], header, .block-container {{
+            background-color: transparent !important;
+        }}
+        section.main > div {{
+            background-color: rgba(255, 255, 255, 0.85); /* Slight white overlay for readability */
+            padding: 2rem !important;
+            border-radius: 15px !important;
+        }}
+
 
         /* 2. ALL TEXT: Force global text, labels, and markdown to White */
         .stMarkdown, p, label, .stText, [data-testid="stMarkdownContainer"] p {{
