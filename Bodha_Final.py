@@ -29,12 +29,12 @@ def set_background(image_file):
         }}
         
         /* 1. DARK CARD: Change background to dark so white text is visible */
-        section.main > div {{
+     /*   section.main > div {{
             background-color: rgba(15, 23, 42, 0.9); /* Dark Slate/Navy */
             padding: 3rem !important;
             border-radius: 20px !important;
             color: white !important;
-        }}
+        }}*/
 
         /* 2. ALL TEXT: Force global text, labels, and markdown to White */
         .stMarkdown, p, label, .stText, [data-testid="stMarkdownContainer"] p {{
