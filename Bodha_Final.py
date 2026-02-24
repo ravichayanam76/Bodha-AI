@@ -22,7 +22,6 @@ def set_background(image_file):
 
         css = f"""
         <style>
-        /* Main background */
         .stApp {{
             background-image: url("data:image/png;base64,{encoded}");
             background-size: cover;
@@ -30,57 +29,13 @@ def set_background(image_file):
             background-position: center center;
             background-attachment: fixed;
         }}
-
-        /* Glassmorphism Card Effect */
+        [data-testid="stHeader"], header, .block-container {{
+            background-color: transparent !important;
+        }}
         section.main > div {{
-            background: rgba(255, 255, 255, 0.94); 
-            padding: 3rem !important;
-            border-radius: 24px !important;
-            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
-            border: 1px solid rgba(255, 255, 255, 0.18);
-        }}
-
-        /* Typography & Colors */
-        h1, h2, h3 {{
-            color: #0F172A !important; /* Slate Dark */
-            font-family: 'Inter', sans-serif;
-            font-weight: 800 !important;
-        }}
-
-        .stMarkdown p, .stText {{
-            color: #334155 !important; /* Slate Gray */
-            line-height: 1.6;
-        }}
-
-        /* Elegant Question Styling */
-        .question-box {{
-            background-color: #F8FAFC;
-            padding: 20px;
-            border-left: 5px solid #1E3A8A;
-            border-radius: 8px;
-            margin-bottom: 10px;
-        }}
-
-        /* Custom Button */
-        .stButton>button {{
-            background: linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%);
-            color: white !important;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 12px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }}
-        
-        .stButton>button:hover {{
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(30, 58, 138, 0.4);
-        }}
-
-        /* Metric Styling */
-        [data-testid="stMetricValue"] {{
-            color: #1E3A8A !important;
-            font-size: 2.5rem !important;
+            background-color: rgba(255, 255, 255, 0.85); /* Slight white overlay for readability */
+            padding: 2rem !important;
+            border-radius: 15px !important;
         }}
         </style>
         """
@@ -90,10 +45,8 @@ def set_background(image_file):
 
 set_background("BodhaImage.png")
 
-# 🏷️ Elegant App Title
-st.markdown("<h1 style='text-align: center; margin-bottom: 0;'>BodhaAI</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #64748B; font-size: 1.2rem;'>Generate. Evaluate. Elevate.</p>", unsafe_allow_html=True)
-st.write("")
+# 🏷️ App Title
+st.markdown("<h1 style='text-align: center; color: #1E3A8A;'>BodhaAI – Generate. Evaluate. Elevate.</h1>", unsafe_allow_html=True)
 
 # 🧠 Session State Init
 if 'quiz_data' not in st.session_state:
@@ -103,83 +56,122 @@ if 'chapters' not in st.session_state:
 if 'full_text' not in st.session_state:
     st.session_state.full_text = ""
 
-# 📤 Upload Section
-with st.container():
-    st.subheader("📑 Step 1: Upload Material")
-    uploaded_file = st.file_uploader("Choose a PDF file", type=["pdf"], label_visibility="collapsed")
+# 📤 Upload & UI
+uploaded_file = st.file_uploader("Upload your textbook or PDF:", type=["pdf"])
+question_type = st.selectbox("Select Question Type:", ["MCQ", "True/False"])
+difficulty = st.selectbox("Select Difficulty Level:", ["Easy", "Medium", "Hard"])
+num_questions = st.slider("Questions per selection:", 1, 20, 5)
 
-# ⚙️ Config Section
-if uploaded_file:
-    st.divider()
-    st.subheader("⚙️ Step 2: Configure Quiz")
-    col1, col2 = st.columns(2)
-    with col1:
-        question_type = st.selectbox("Format", ["MCQ", "True/False"])
-        difficulty = st.selectbox("Difficulty", ["Easy", "Medium", "Hard"])
-    with col2:
-        num_questions = st.select_slider("Quantity", options=range(1, 21), value=5)
+# 🧹 Clean text utility
+def clean_text(text):
+    text = re.sub(r'\n+', '\n', text)
+    text = re.sub(r'\s{2,}', ' ', text)
+    return text.strip()
+
+def extract_chapters_from_pdf(file_path):
+    full_text = ""
+    with pdfplumber.open(file_path) as pdf:
+        for page in pdf.pages:
+            page_text = page.extract_text()
+            if page_text: full_text += page_text + "\n"
     
-    # Text Extraction Logic
+    full_text = clean_text(full_text)
+    pattern = re.compile(r'(Chapter\s+(\d+))\b', re.IGNORECASE)
+    matches = list(pattern.finditer(full_text))
+    chapter_map = {}
+
+    for i in range(len(matches)):
+        start = matches[i].start()
+        end = matches[i + 1].start() if i + 1 < len(matches) else len(full_text)
+        chapter_map[matches[i].group(1)] = full_text[start:end].strip()
+
+    return chapter_map, full_text
+
+def parse_generated_questions(raw_text):
+    """Parses Gemini output into a list of structured dictionaries."""
+    questions = []
+    # Split by Q: followed by any number
+    blocks = re.split(r'Q\d*[:.]\s*', raw_text)
+    
+    for block in blocks:
+        if not block.strip(): continue
+        lines = [l.strip() for l in block.split('\n') if l.strip()]
+        
+        # Logic to find Question, Options, and Answer
+        q_text = lines[0]
+        options = [l for l in lines if re.match(r'^[A-D][\)\.]', l) or l in ["True", "False"]]
+        answer_line = [l for l in lines if "Answer:" in l or "Correct:" in l]
+        
+        if q_text and answer_line:
+            correct_ans = answer_line[0].split(":")[-1].strip()
+            # If MCQ, just get the letter (A, B, C, D)
+            if question_type == "MCQ":
+                correct_ans = re.search(r'[A-D]', correct_ans).group()
+                
+            questions.append({
+                "question": q_text,
+                "options": options,
+                "answer": correct_ans
+            })
+    return questions
+
+# 🤖 Gemini Generator
+def generate_questions(text, difficulty, num, q_type):
+    model = genai.GenerativeModel("gemini-2.5-flash")
+    prompt = f"""
+    Generate {num} {difficulty} level {q_type} questions based on this text.
+    
+    FORMAT RULES:
+    1. Start each question with "Q: "
+    2. For MCQ, provide 4 options starting with A), B), C), D).
+    3. For True/False, provide True and False as options.
+    4. End each question block with "Answer: <correct letter or word>"
+    
+    TEXT: {text[:4000]} 
+    """
+    response = model.generate_content(prompt)
+    return response.text
+
+# 📜 Main Logic
+if uploaded_file:
     if not st.session_state.full_text:
         with tempfile.NamedTemporaryFile(delete=False) as tmp:
             tmp.write(uploaded_file.read())
-            # (Assuming your extract_chapters_from_pdf function is defined)
-            from pypdf import PdfReader # Fallback suggestion if pdfplumber is slow
-            # Your existing extraction logic here...
-            # For brevity, reusing your logic:
-            def clean_text(text):
-                return re.sub(r'\s+', ' ', text).strip()
-            
-            with pdfplumber.open(tmp.name) as pdf:
-                full_text = "\n".join([p.extract_text() for p in pdf.pages if p.extract_text()])
-                st.session_state.full_text = clean_text(full_text)
+            chapters, full_text = extract_chapters_from_pdf(tmp.name)
+            st.session_state.chapters = chapters
+            st.session_state.full_text = full_text
 
-    if st.button("✨ Generate My Quiz"):
-        with st.spinner("AI is crafting your questions..."):
-            # Your generate_questions logic here
-            model = genai.GenerativeModel("gemini-1.5-flash")
-            prompt = f"Generate {num_questions} {difficulty} {question_type} questions. Text: {st.session_state.full_text[:3000]}. Format: Q: <text> A) <text> B) <text> C) <text> D) <text> Answer: <letter>"
-            response = model.generate_content(prompt)
-            
-            # Simplified Parse (reusing your parser)
-            raw_text = response.text
-            questions = []
-            blocks = re.split(r'Q\d*[:.]\s*', raw_text)
-            for b in blocks:
-                if not b.strip(): continue
-                lines = [l.strip() for l in b.split('\n') if l.strip()]
-                q_text = lines[0]
-                opts = [l for l in lines if re.match(r'^[A-D][\)\.]', l) or l in ["True", "False"]]
-                ans = [l for l in lines if "Answer:" in l or "Correct:" in l]
-                if q_text and ans:
-                    correct = re.search(r'[A-D]|True|False', ans[0]).group()
-                    questions.append({"question": q_text, "options": opts, "answer": correct})
-            st.session_state.quiz_data = questions
+    selected_ch = st.multiselect("Select Chapters:", list(st.session_state.chapters.keys()))
+    
+    if st.button("Generate Interactive Quiz"):
+        source_text = "\n".join([st.session_state.chapters[c] for c in selected_ch]) if selected_ch else st.session_state.full_text
+        raw_output = generate_questions(source_text, difficulty, num_questions, question_type)
+        st.session_state.quiz_data = parse_generated_questions(raw_output)
 
-# 📝 Quiz Display
+# 📝 Display Quiz
 if st.session_state.quiz_data:
-    st.markdown("---")
-    with st.form("elegant_exam"):
-        st.markdown("<h3 style='text-align: center;'>Knowledge Assessment</h3>", unsafe_allow_html=True)
+    st.divider()
+    with st.form("exam_form"):
+        st.subheader("Final Examination")
         user_responses = {}
         
         for i, item in enumerate(st.session_state.quiz_data):
-            st.markdown(f"""<div class="question-box"><strong>Question {i+1}</strong><br>{item['question']}</div>""", unsafe_allow_html=True)
-            user_responses[i] = st.radio("Select Answer:", item['options'], key=f"q{i}", label_visibility="collapsed")
-            st.write("")
+            st.write(f"**Question {i+1}:** {item['question']}")
+            user_responses[i] = st.radio("Choose one:", item['options'], key=f"q{i}", label_visibility="collapsed")
+            st.write("---")
             
-        submitted = st.form_submit_button("Submit Assessment")
+        submitted = st.form_submit_button("Submit Exam")
         
         if submitted:
             score = 0
             for i, item in enumerate(st.session_state.quiz_data):
+                # Check if first letter of choice matches answer
                 if user_responses[i].startswith(item['answer']):
                     score += 1
-                    st.success(f"Question {i+1}: Correct")
+                    st.success(f"Q{i+1}: Correct!")
                 else:
-                    st.error(f"Question {i+1}: Expected {item['answer']}")
+                    st.error(f"Q{i+1}: Wrong. Correct answer was: {item['answer']}")
             
             percent = (score / len(st.session_state.quiz_data)) * 100
-            st.divider()
-            st.metric("Final Proficiency", f"{percent:.0f}%", f"{score}/{len(st.session_state.quiz_data)} Score")
+            st.metric("Final Score", f"{percent}%", f"{score}/{len(st.session_state.quiz_data)}")
             if percent >= 70: st.balloons()
