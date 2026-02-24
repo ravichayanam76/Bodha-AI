@@ -106,7 +106,7 @@ if st.session_state.role == "Examiner":
         q_type = st.selectbox("Type", ["MCQ", "True/False"])
         diff = st.selectbox("Difficulty", ["Easy", "Medium", "Hard"])
     with col2:
-        num_q = st.slider("Number of Questions", 1, 20, 5)
+        num_q = st.slider("Number of Questions", 1, 50, 5)
 
     if uploaded_file and st.button("Generate & Publish Exam"):
         with tempfile.NamedTemporaryFile(delete=False) as tmp:
