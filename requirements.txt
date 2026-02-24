@@ -1,5 +1,4 @@
 streamlit
 pdfplumber
-pypdf
 Pillow
 google-generativeai
