@@ -202,7 +202,7 @@ Answer: <Answer>
 
 Q2. ...
 """
-    model = genai.GenerativeModel("models/gemini-1.5-flash-latest")
+    model = genai.GenerativeModel("gemini-2.5-flash") 
     response = model.generate_content(prompt)
     return response.text
 
