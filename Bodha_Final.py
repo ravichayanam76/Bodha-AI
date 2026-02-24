@@ -82,7 +82,7 @@ def parse_generated_questions(raw_text, q_type):
     return questions
 
 def generate_questions(text, difficulty, num, q_type):
-    model = genai.GenerativeModel("gemini-1.5-flash") # Updated to 1.5
+    model = genai.GenerativeModel("gemini-2.5-flash") # Updated to 1.5
     prompt = f"Generate {num} {difficulty} level {q_type} questions. Format: Q: [Question] \n Options (A,B,C,D or True/False) \n Answer: [Correct Letter/Word]. Text: {text[:4000]}"
     try:
         response = model.generate_content(prompt)
