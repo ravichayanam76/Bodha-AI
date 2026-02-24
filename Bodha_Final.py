@@ -8,7 +8,7 @@ from pathlib import Path
 import base64
 
 # 🔐 Gemini API key
-genai.configure(api_key=st.secrets["gemini_api_key"])
+genai.configure(api_key='AIzaSyDZDXQctN4QIZqHoUinE35GAiFxtSH0ERg')
 
 # 📘 Streamlit Config
 st.set_page_config(page_title="BodhaAI - Smart Exam", layout="centered")
