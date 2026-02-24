@@ -189,7 +189,14 @@ if uploaded_file:
     if st.button("Generate Interactive Quiz"):
         source_text = "\n".join([st.session_state.chapters[c] for c in selected_ch]) if selected_ch else st.session_state.full_text
         raw_output = generate_questions(source_text, difficulty, num_questions, question_type)
-        st.session_state.quiz_data = parse_generated_questions(raw_output)
+        if raw_output == "LIMIT_ERROR":
+            st.warning("⚠️ Rate limit reached. Please wait 60 seconds.")
+        elif "ERROR" in raw_output:
+            st.error("AI connection failed. Try again shortly.")
+        else:
+            st.session_state.quiz_data = parse_generated_questions(raw_output)
+            # Force a rerun to ensure the UI updates immediately
+            st.rerun()
 
 # 📝 Display Quiz
 if st.session_state.quiz_data:
