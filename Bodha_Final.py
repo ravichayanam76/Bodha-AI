@@ -32,10 +32,29 @@ def set_background(image_file):
         [data-testid="stHeader"], header, .block-container {{
             background-color: transparent !important;
         }}
+        
+        /* 1. MAIN CARD ENHANCEMENT */
         section.main > div {{
-            background-color: rgba(255, 255, 255, 0.85); /* Slight white overlay for readability */
-            padding: 2rem !important;
-            border-radius: 15px !important;
+            background-color: rgba(255, 255, 255, 0.95); /* Increased opacity for better text contrast */
+            padding: 3rem !important; /* Added more breathing room */
+            border-radius: 25px !important;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3); /* Soft shadow for elegance */
+        }}
+
+        /* 2. TEXT COLOR OVERRIDES */
+        /* Ensuring all standard text is a deep charcoal for readability */
+        .stMarkdown, p, label {{
+            color: #2C3E50 !important; 
+            font-weight: 500;
+        }}
+
+        /* 3. QUESTION BOX STYLING */
+        .question-container {{
+            background-color: #F8FAFC;
+            padding: 20px;
+            border-left: 5px solid #1E3A8A;
+            border-radius: 10px;
+            margin-bottom: 10px;
         }}
         </style>
         """
@@ -44,6 +63,14 @@ def set_background(image_file):
         pass
 
 set_background("BodhaImage.png")
+
+# 🏷️ 4. ELEGANT TITLE STYLING
+# Added a slight text shadow to help it pop against any background
+st.markdown("""
+    <h1 style='text-align: center; color: #1E3A8A; font-family: sans-serif; text-shadow: 1px 1px 2px rgba(0,0,0,0.1);'>
+        BodhaAI <span style='color: #34495E; font-weight: 300;'>| Generate. Evaluate. Elevate.</span>
+    </h1>
+    """, unsafe_allow_html=True)
 
 # 🏷️ App Title
 st.markdown("<h1 style='text-align: center; color: #1E3A8A;'>BodhaAI – Generate. Evaluate. Elevate.</h1>", unsafe_allow_html=True)
