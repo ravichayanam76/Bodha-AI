@@ -7,10 +7,20 @@ import os
 import json
 import base64
 from pathlib import Path
+from dotenv import load_dotenv
 
+# 1. Load local .env file (for local development only)
+load_dotenv()
 # --- CONFIG & API ---
-# Note: In a real app, move this to st.secrets for security
-genai.configure(api_key='AIzaSyD7eZ4BZq2K3RODPcLIpIazshzxjxces6M')
+# 2. Fetch the API Key
+# This looks for 'GEMINI_API_KEY' in your OS or GitHub Secrets
+api_key = st.secrets.get("GEMINI_API_KEY")
+
+if not api_key:
+    st.error("Missing Gemini API Key. Please configure it in your Secrets or .env file.")
+    st.stop()
+
+genai.configure(api_key=api_key)
 
 st.set_page_config(page_title="BodhaAI - Smart Exam", layout="centered")
 
