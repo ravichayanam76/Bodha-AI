@@ -10,7 +10,7 @@ from pathlib import Path
 
 # --- CONFIG & API ---
 # Note: In a real app, move this to st.secrets for security
-genai.configure(api_key='AIzaSyDITIY7oJEaOh6sXK-vVbCCw47ABJWVIO8')
+genai.configure(api_key='AIzaSyD7eZ4BZq2K3RODPcLIpIazshzxjxces6M')
 
 st.set_page_config(page_title="BodhaAI - Smart Exam", layout="centered")
 
