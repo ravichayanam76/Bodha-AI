@@ -2,3 +2,4 @@ streamlit
 pdfplumber
 Pillow
 google-generativeai
+python-dotenv
