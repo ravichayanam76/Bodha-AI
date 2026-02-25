@@ -14,7 +14,7 @@ load_dotenv()
 # --- CONFIG & API ---
 # 2. Fetch the API Key
 # This looks for 'GEMINI_API_KEY' in your OS or GitHub Secrets
-api_key = st.secrets.get("GEMINI_API_KEY")
+api_key = st.secrets.get("GEMINI_API_KEY") or os.getenv("GEMINI_API_KEY")
 
 if not api_key:
     st.error("Missing Gemini API Key. Please configure it in your Secrets or .env file.")
