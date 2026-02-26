@@ -150,7 +150,7 @@ def parse_generated_questions(raw_text, q_type):
 @st.cache_data(show_spinner="AI is generating questions...")
 def generate_questions(text, difficulty, num, q_type):
     if not text.strip(): return "ERROR: PDF is empty."
-    model = genai.GenerativeModel("gemini-1.5-flash") 
+    model = genai.GenerativeModel("gemini-2.5-flash") 
     
     prompt = f"""Generate {num} {difficulty} level {q_type} questions based on this text.
     STRICT FORMAT:
