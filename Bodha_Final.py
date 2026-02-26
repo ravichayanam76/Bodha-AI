@@ -276,7 +276,7 @@ if st.session_state.role == "Examiner":
             st.write("---")
             st.write("### 📥 Manage Current Exam")
             
-            report_text = "ABAP Assesment AI - EXAM KEY\n" + "="*20 + "\n"
+            report_text = "ABAP Assessment AI - EXAM KEY\n" + "="*20 + "\n"
             for i, item in enumerate(current_quiz):
                 report_text += f"Q{i+1}: {item['question']}\nAns: {item['answer']}\n\n"
             
@@ -319,7 +319,7 @@ elif st.session_state.role == "Student":
                 else:
                     st.session_state.exam_submitted = True
                     score = 0
-                    report = f"ABAP Assesment RESULT\nStudent: {name}\n" + "="*20 + "\n"
+                    report = f"ABAP Assessment RESULT\nStudent: {name}\n" + "="*20 + "\n"
                     for i, item in enumerate(quiz):
                         is_correct = item['answer'].strip().upper() in user_ans[i].upper()
                         if is_correct: score += 1
