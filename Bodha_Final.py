@@ -100,6 +100,20 @@ def set_background(image_file):
             font-weight: bold;
         }}
 
+/* Timer Styling */
+.timer-container {
+    background-color: #f0f2f6;
+    padding: 10px;
+    border-radius: 10px;
+    border-left: 5px solid #1E3A8A;
+    text-align: center;
+    margin-bottom: 20px;
+}
+.timer-text {
+    font-size: 24px;
+    font-weight: bold;
+    color: #1E3A8A;
+}
         </style>
         """
         st.markdown(css, unsafe_allow_html=True)
@@ -244,6 +258,8 @@ if st.session_state.role == "Examiner":
                 mime="text/plain"
             )
             
+import time  # Ensure this is at the very top of your file
+
 # --- STUDENT VIEW ---
 elif st.session_state.role == "Student":
     st.subheader("✍️ Student Examination")
@@ -251,9 +267,31 @@ elif st.session_state.role == "Student":
     current_quiz = load_quiz_from_disk()
     
     if not current_quiz:
-        st.info("No exam is currently available. Please wait for the examiner to publish one.")
+        st.info("No exam is currently available.")
     else:
-        # 1. We create the form
+        # --- TIMER CONFIGURATION ---
+        exam_duration_min = 30  # Set exam duration here
+        if 'start_time' not in st.session_state:
+            st.session_state.start_time = time.time()
+        
+        # Create a placeholder for the timer
+        timer_placeholder = st.empty()
+        
+        # Calculate time remaining
+        elapsed_time = time.time() - st.session_state.start_time
+        remaining_time = max(0, (exam_duration_min * 60) - elapsed_time)
+
+        # Display Timer
+        mins, secs = divmod(int(remaining_time), 60)
+        timer_placeholder.markdown(
+            f'<div class="timer-container"><span class="timer-text">⏳ Time Remaining: {mins:02d}:{secs:02d}</span></div>', 
+            unsafe_allow_html=True
+        )
+
+        if remaining_time <= 0:
+            st.error("⚠️ Time is up! Please submit your answers immediately.")
+
+        # --- EXAM FORM ---
         with st.form("exam_form"):
             user_responses = {}
             for i, item in enumerate(current_quiz):
@@ -263,37 +301,32 @@ elif st.session_state.role == "Student":
             
             submitted = st.form_submit_button("Submit Final Answers")
         
-        # 2. Process results OUTSIDE the form block
         if submitted:
+            # Clear start_time so it resets for the next exam
+            del st.session_state.start_time 
+            
             score = 0
-            result_report = "BODHA AI - STUDENT PERFORMANCE REPORT\n" + "="*40 + "\n\n"
+            result_report = "BODHA AI - PERFORMANCE REPORT\n" + "="*40 + "\n\n"
             
             for i, item in enumerate(current_quiz):
                 u_ans = user_responses[i]
                 is_correct = item['answer'].strip().upper() in u_ans.upper()
-                if is_correct:
-                    score += 1
+                if is_correct: score += 1
                 
                 status = "✅ CORRECT" if is_correct else "❌ INCORRECT"
-                result_report += f"Q{i+1}: {item['question']}\nYour Answer: {u_ans}\nStatus: {status}\nCorrect Key: {item['answer']}\n"
+                result_report += f"Q{i+1}: {item['question']}\nYour Answer: {u_ans}\nStatus: {status}\n"
                 result_report += "-"*20 + "\n"
             
             percent = (score / len(current_quiz)) * 100
-            result_report += f"\nFINAL SCORE: {score}/{len(current_quiz)} ({percent:.1f}%)"
-            
-            # Display Results
             st.metric("Your Result", f"{percent:.1f}%", f"{score}/{len(current_quiz)}")
             
             if percent >= 70:
                 st.balloons()
-                st.success("Congratulations! You passed.")
-            else:
-                st.warning("Keep studying and try again!")
-
-            # 3. Download button now works because it is OUTSIDE st.form
+                st.success("Congratulations!")
+            
+            # Re-display the download button outside the form
             st.download_button(
                 label="📊 Download My Result Report (TXT)",
-                data=result_report,
-                file_name="my_exam_results.txt",
-                mime="text/plain"
+                data=result_report + f"\nScore: {score}/{len(current_quiz)}",
+                file_name="my_results.txt"
             )
