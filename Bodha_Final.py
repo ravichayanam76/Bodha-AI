@@ -250,7 +250,23 @@ if st.session_state.role == "Examiner":
                 tmp.write(uploaded_file.read())
                 full_text = extract_chapters_from_pdf(tmp.name)
             
-            raw_output = generate_questions(full_text, diff, num_q, q_type)
+            raw_ai_output = generate_questions(txt, "Medium", num_q, q_type)
+            
+            # For debugging (Optional: remove in production)
+            # st.text_area("Raw AI Response", raw_ai_output) 
+            
+            data = parse_generated_questions(raw_ai_output, q_type)
+            if data:
+                save_quiz_to_disk(data)
+                st.success(f"✅ Exam Published with {len(data)} questions!")
+            else: 
+                st.error("Failed to parse AI output. AI output didn't follow the Q/A format.")
+
+        st.write("---")
+        st.subheader("📊 Student Submissions")
+        res = load_all_results()
+        if res: st.table(res)
+        else: st.info("No submissions yet.")
             
             if raw_output == "ERROR_429":
                 st.error("⚠️ Quota Exceeded. Please wait 60 seconds.")
