@@ -218,6 +218,7 @@ st.sidebar.title("Navigation")
 st.session_state.role = st.sidebar.radio("Select Role:", ["Student", "Examiner"])
 
 # --- EXAMINER VIEW ---
+# --- EXAMINER VIEW ---
 if st.session_state.role == "Examiner":
     if not st.session_state.is_authenticated:
         st.subheader("🔒 Examiner Login")
@@ -231,10 +232,12 @@ if st.session_state.role == "Examiner":
     else:
         st.subheader("🛠️ Examiner Dashboard")
         
-        if st.sidebar.button("🔄 Clear Current Exam"):
-            if os.path.exists(DB_FILE): os.remove(DB_FILE)
+        # CLEAR SYSTEM BUTTON
+        if st.sidebar.button("🔄 Clear All Data"):
+            for f in [DB_FILE, RESULTS_FILE]:
+                if os.path.exists(f): os.remove(f)
             st.cache_data.clear()
-            st.success("Exam deleted from server.")
+            st.success("System reset successfully.")
             st.rerun()
 
         uploaded_file = st.file_uploader("Upload Exam PDF", type=["pdf"])
@@ -245,63 +248,51 @@ if st.session_state.role == "Examiner":
         with col2:
             num_q = st.slider("Number of Questions", 1, 50, 5)
 
+        # GENERATION LOGIC
         if uploaded_file and st.button("Generate & Publish Exam"):
             with tempfile.NamedTemporaryFile(delete=False) as tmp:
                 tmp.write(uploaded_file.read())
                 full_text = extract_chapters_from_pdf(tmp.name)
             
-            raw_ai_output = generate_questions(txt, "Medium", num_q, q_type)
+            # This is where raw_output is defined
+            raw_output = generate_questions(full_text, diff, num_q, q_type)
             
-            # For debugging (Optional: remove in production)
-            # st.text_area("Raw AI Response", raw_ai_output) 
-            
-            data = parse_generated_questions(raw_ai_output, q_type)
-            if data:
-                save_quiz_to_disk(data)
-                st.success(f"✅ Exam Published with {len(data)} questions!")
-            else: 
-                st.error("Failed to parse AI output. AI output didn't follow the Q/A format.")
-
-        st.write("---")
-        st.subheader("📊 Student Submissions")
-        res = load_all_results()
-        if res: st.table(res)
-        else: st.info("No submissions yet.")
-            
-        if raw_output == "ERROR_429":
+            if raw_output == "ERROR_429":
                 st.error("⚠️ Quota Exceeded. Please wait 60 seconds.")
-        elif "ERROR" in raw_output:
+            elif "ERROR" in raw_output:
                 st.error(raw_output)
-        else:
+            else:
                 quiz_data = parse_generated_questions(raw_output, q_type)
                 if quiz_data:
-                    save_quiz_to_disk(quiz_data) # SAVE TO PERSISTENT STORAGE
-                    st.success(f"✅ Exam with {len(quiz_data)} questions published globally!")
+                    save_quiz_to_disk(quiz_data)
+                    st.success(f"✅ Exam with {len(quiz_data)} questions published!")
                 else:
-                    st.error("AI generated content but failed to parse. Try again.")
+                    st.error("AI output didn't follow the Q/A format. Try adjusting the PDF.")
 
-# --- NEW: DOWNLOAD SECTION ---
+        # --- DOWNLOAD & RESULTS SECTION ---
+        # This part runs regardless of whether you just clicked generate
         current_quiz = load_quiz_from_disk()
         if current_quiz:
             st.write("---")
             st.write("### 📥 Manage Current Exam")
             
-            # Format quiz data into a readable string for the download file
-            report_text = "BODHA AI - EXAM QUESTIONS & ANSWERS\n" + "="*40 + "\n\n"
+            report_text = "BODHA AI - EXAM KEY\n" + "="*20 + "\n"
             for i, item in enumerate(current_quiz):
-                report_text += f"Q{i+1}: {item['question']}\n"
-                for opt in item['options']:
-                    report_text += f"   {opt}\n"
-                report_text += f"CORRECT ANSWER: {item['answer']}\n"
-                report_text += "-"*20 + "\n"
+                report_text += f"Q{i+1}: {item['question']}\nAns: {item['answer']}\n\n"
             
             st.download_button(
-                label="Download Questions & Answers (TXT)",
+                label="Download Answer Key (TXT)",
                 data=report_text,
-                file_name="quiz_answer_key.txt",
-                mime="text/plain"
+                file_name="quiz_key.txt"
             )
 
+        st.write("---")
+        st.subheader("📊 Student Submissions")
+        all_results = load_all_results()
+        if all_results:
+            st.table(all_results)
+        else:
+            st.info("No students have submitted yet.")
 # --- STUDENT VIEW ---
 elif st.session_state.role == "Student":
     st.subheader("✍️ Student Examination")
