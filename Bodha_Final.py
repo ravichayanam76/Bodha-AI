@@ -248,12 +248,12 @@ if st.session_state.role == "Examiner":
 elif st.session_state.role == "Student":
     st.subheader("✍️ Student Examination")
     
-    # Load from the shared file
     current_quiz = load_quiz_from_disk()
     
     if not current_quiz:
         st.info("No exam is currently available. Please wait for the examiner to publish one.")
     else:
+        # 1. We create the form
         with st.form("exam_form"):
             user_responses = {}
             for i, item in enumerate(current_quiz):
@@ -262,38 +262,38 @@ elif st.session_state.role == "Student":
                 st.write("---")
             
             submitted = st.form_submit_button("Submit Final Answers")
+        
+        # 2. Process results OUTSIDE the form block
+        if submitted:
+            score = 0
+            result_report = "BODHA AI - STUDENT PERFORMANCE REPORT\n" + "="*40 + "\n\n"
             
-            if submitted:
-                score = 0
-                # Initialize the report string inside the block where it's used
-                result_report = "BODHA AI - STUDENT PERFORMANCE REPORT\n" + "="*40 + "\n\n"
+            for i, item in enumerate(current_quiz):
+                u_ans = user_responses[i]
+                is_correct = item['answer'].strip().upper() in u_ans.upper()
+                if is_correct:
+                    score += 1
                 
-                for i, item in enumerate(current_quiz):
-                    u_ans = user_responses[i]
-                    # Logic check
-                    is_correct = item['answer'].strip().upper() in u_ans.upper()
-                    if is_correct:
-                        score += 1
-                    
-                    status = "✅ CORRECT" if is_correct else "❌ INCORRECT"
-                    result_report += f"Q{i+1}: {item['question']}\nYour Answer: {u_ans}\nStatus: {status}\nCorrect Key: {item['answer']}\n"
-                    result_report += "-"*20 + "\n"
-                
-                percent = (score / len(current_quiz)) * 100
-                result_report += f"\nFINAL SCORE: {score}/{len(current_quiz)} ({percent:.1f}%)"
-                
-                st.metric("Your Result", f"{percent:.1f}%", f"{score}/{len(current_quiz)}")
-                
-                if percent >= 70:
-                    st.balloons()
-                    st.success("Congratulations! You passed.")
-                else:
-                    st.warning("Keep studying and try again!")
+                status = "✅ CORRECT" if is_correct else "❌ INCORRECT"
+                result_report += f"Q{i+1}: {item['question']}\nYour Answer: {u_ans}\nStatus: {status}\nCorrect Key: {item['answer']}\n"
+                result_report += "-"*20 + "\n"
+            
+            percent = (score / len(current_quiz)) * 100
+            result_report += f"\nFINAL SCORE: {score}/{len(current_quiz)} ({percent:.1f}%)"
+            
+            # Display Results
+            st.metric("Your Result", f"{percent:.1f}%", f"{score}/{len(current_quiz)}")
+            
+            if percent >= 70:
+                st.balloons()
+                st.success("Congratulations! You passed.")
+            else:
+                st.warning("Keep studying and try again!")
 
-                # Place the download button IMMEDIATELY after generating the report
-                st.download_button(
-                    label="📊 Download My Result Report (TXT)",
-                    data=result_report,
-                    file_name="my_exam_results.txt",
-                    mime="text/plain"
-                )
+            # 3. Download button now works because it is OUTSIDE st.form
+            st.download_button(
+                label="📊 Download My Result Report (TXT)",
+                data=result_report,
+                file_name="my_exam_results.txt",
+                mime="text/plain"
+            )
