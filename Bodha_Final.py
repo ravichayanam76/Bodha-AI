@@ -63,30 +63,73 @@ def set_background(image_file):
         .stApp {{
             background-image: url("data:image/png;base64,{encoded}");
             background-size: cover;
+            background-repeat: no-repeat;
+            background-position: center center;
             background-attachment: fixed;
         }}
+
         section.main > div {{
-            background-color: rgba(255, 255, 255, 0.9);
+            background-color: rgba(255, 255, 255, 0.85); /* Slight white overlay for readability */
             padding: 2rem !important;
             border-radius: 15px !important;
-            color: black !important;
         }}
-        [data-testid="stSidebar"] {{ background-color: #f0f2f6 !important; }}
+
+        /* FIX 1: Navigation and Radio Button text to Black */
+        [data-testid="stSidebar"] .stMarkdown p, 
+        [data-testid="stSidebar"] label, 
+        [data-testid="stSidebar"] div[data-testid="stWidgetLabel"] p,
+        [data-testid="stWidgetLabel"] p {{
+            color: #000000 !important;
+        }}
+
+        /* 1. FORCE SIDEBAR TEXT TO BLACK */
+        /* Targets 'Select Role', 'Student', and 'Examiner' */
+        [data-testid="stSidebar"] {{
+            color: #000000 !important;
+        }}
+        
+        [data-testid="stSidebar"] .stMarkdown p, 
+        [data-testid="stSidebar"] label, 
+        [data-testid="stSidebar"] span,
+        [data-testid="stSidebar"] div[data-testid="stWidgetLabel"] p {{
+            color: #000000 !important;
+            -webkit-text-fill-color: #000000 !important;
+        }}
+
+        /* 2. FORCE SUBMIT BUTTON TEXT TO BLACK */
+        /* Targets the text inside the button */
+        .stButton button div p, 
         .stButton button {{
+            color: #000000 !important;
+            -webkit-text-fill-color: #000000 !important;
+        }}
+
+        /* 2. ALL TEXT: Force global text, labels, and markdown to White */
+        .stMarkdown, p, label, .stText, [data-testid="stMarkdownContainer"] p {{
+            color: #FFFFFF !important;
+        }}
+
+        .stButton>button {{
             width: 100%;
             background: linear-gradient(90deg, #1E3A8A 0%, #3B82F6 100%);
             color: white !important;
             font-weight: bold;
         }}
-        .timer-container {{
-            background-color: #f0f2f6;
-            padding: 10px;
-            border-radius: 10px;
-            border-left: 5px solid #1E3A8A;
-            text-align: center;
-            margin-bottom: 20px;
-        }}
-        .timer-text {{ font-size: 24px; font-weight: bold; color: #1E3A8A; }}
+
+/* Timer Styling */
+.timer-container {
+    background-color: #f0f2f6;
+    padding: 10px;
+    border-radius: 10px;
+    border-left: 5px solid #1E3A8A;
+    text-align: center;
+    margin-bottom: 20px;
+}
+.timer-text {
+    font-size: 24px;
+    font-weight: bold;
+    color: #1E3A8A;
+}
         </style>
         """
         st.markdown(css, unsafe_allow_html=True)
