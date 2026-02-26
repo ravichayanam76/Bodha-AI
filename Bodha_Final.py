@@ -139,7 +139,7 @@ def parse_generated_questions(raw_text, q_type):
 
 @st.cache_data(show_spinner="AI is generating questions...")
 def generate_questions(text, difficulty, num, q_type):
-    model = genai.GenerativeModel("gemini-1.5-flash") # Use stable model
+    model = genai.GenerativeModel("gemini-2.5-flash") # Use stable model
     prompt = f"Generate {num} {difficulty} level {q_type} questions...\nText: {text[:8000]}"
     try:
         response = model.generate_content(prompt)
