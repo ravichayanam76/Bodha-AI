@@ -269,28 +269,15 @@ elif st.session_state.role == "Student":
         st.info("No exam is currently available.")
     else:
         # --- TIMER CONFIGURATION ---
-        exam_duration_min = 30  # Set exam duration here
+        exam_duration_min = 30 
         if 'start_time' not in st.session_state:
             st.session_state.start_time = time.time()
         
         # Create a placeholder for the timer
         timer_placeholder = st.empty()
-        
-        # Calculate time remaining
-        elapsed_time = time.time() - st.session_state.start_time
-        remaining_time = max(0, (exam_duration_min * 60) - elapsed_time)
-
-        # Display Timer
-        mins, secs = divmod(int(remaining_time), 60)
-        timer_placeholder.markdown(
-            f'<div class="timer-container"><span class="timer-text">⏳ Time Remaining: {mins:02d}:{secs:02d}</span></div>', 
-            unsafe_allow_html=True
-        )
-
-        if remaining_time <= 0:
-            st.error("⚠️ Time is up! Please submit your answers immediately.")
 
         # --- EXAM FORM ---
+        # Note: We wrap the form first so it exists when the timer starts looping
         with st.form("exam_form"):
             user_responses = {}
             for i, item in enumerate(current_quiz):
@@ -299,12 +286,34 @@ elif st.session_state.role == "Student":
                 st.write("---")
             
             submitted = st.form_submit_button("Submit Final Answers")
+
+        # --- THE TICKING MECHANISM ---
+        # This loop runs as long as the student hasn't submitted
+        if not submitted:
+            while True:
+                elapsed_time = time.time() - st.session_state.start_time
+                remaining_time = max(0, (exam_duration_min * 60) - elapsed_time)
+                
+                mins, secs = divmod(int(remaining_time), 60)
+                
+                # Update the timer display
+                timer_placeholder.markdown(
+                    f'<div class="timer-container"><span class="timer-text">⏳ Time Remaining: {mins:02d}:{secs:02d}</span></div>', 
+                    unsafe_allow_html=True
+                )
+                
+                if remaining_time <= 0:
+                    st.warning("⏰ Time is up! Please click 'Submit Final Answers' now.")
+                    break
+                
+                time.sleep(1) # Wait for 1 second before ticking
+                # We don't use st.rerun() here to avoid resetting the radio buttons
         
+        # --- PROCESS RESULTS ---
         if submitted:
-            # Clear start_time so it resets for the next exam
-            del st.session_state.start_time 
-            
-            score = 0
+            # Clear the timer loop and placeholder
+            timer_placeholder.empty()
+            score = 0           
             result_report = "BODHA AI - PERFORMANCE REPORT\n" + "="*40 + "\n\n"
             
             for i, item in enumerate(current_quiz):
