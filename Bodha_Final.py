@@ -20,7 +20,7 @@ if not api_key:
 
 genai.configure(api_key=api_key)
 
-st.set_page_config(page_title="BodhaAI - Smart Exam", layout="centered")
+st.set_page_config(page_title="ABAP Assessment - Smart Exam", layout="centered")
 
 DB_FILE = "global_quiz_data.json"
 RESULTS_FILE = "student_submissions.json"
@@ -213,7 +213,7 @@ def generate_questions(text, difficulty, num, q_type):
         return f"ERROR: {str(e)}"
 
 # --- UI LAYOUT ---
-st.markdown("<h1 style='text-align: center; color: #1E3A8A;'>BodhaAI Exam Portal</h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align: center; color: #1E3A8A;'>ABAP Assessment Exam Portal</h1>", unsafe_allow_html=True)
 st.sidebar.title("Navigation")
 st.session_state.role = st.sidebar.radio("Select Role:", ["Student", "Examiner"])
 
@@ -276,7 +276,7 @@ if st.session_state.role == "Examiner":
             st.write("---")
             st.write("### 📥 Manage Current Exam")
             
-            report_text = "BODHA AI - EXAM KEY\n" + "="*20 + "\n"
+            report_text = "ABAP Assesment AI - EXAM KEY\n" + "="*20 + "\n"
             for i, item in enumerate(current_quiz):
                 report_text += f"Q{i+1}: {item['question']}\nAns: {item['answer']}\n\n"
             
@@ -319,7 +319,7 @@ elif st.session_state.role == "Student":
                 else:
                     st.session_state.exam_submitted = True
                     score = 0
-                    report = f"BODHA AI RESULT\nStudent: {name}\n" + "="*20 + "\n"
+                    report = f"ABAP Assesment RESULT\nStudent: {name}\n" + "="*20 + "\n"
                     for i, item in enumerate(quiz):
                         is_correct = item['answer'].strip().upper() in user_ans[i].upper()
                         if is_correct: score += 1
