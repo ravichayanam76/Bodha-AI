@@ -222,6 +222,28 @@ if st.session_state.role == "Examiner":
                 else:
                     st.error("AI generated content but failed to parse. Try again.")
 
+# --- NEW: DOWNLOAD SECTION ---
+        current_quiz = load_quiz_from_disk()
+        if current_quiz:
+            st.write("---")
+            st.write("### 📥 Manage Current Exam")
+            
+            # Format quiz data into a readable string for the download file
+            report_text = "BODHA AI - EXAM QUESTIONS & ANSWERS\n" + "="*40 + "\n\n"
+            for i, item in enumerate(current_quiz):
+                report_text += f"Q{i+1}: {item['question']}\n"
+                for opt in item['options']:
+                    report_text += f"   {opt}\n"
+                report_text += f"CORRECT ANSWER: {item['answer']}\n"
+                report_text += "-"*20 + "\n"
+            
+            st.download_button(
+                label="Download Questions & Answers (TXT)",
+                data=report_text,
+                file_name="quiz_answer_key.txt",
+                mime="text/plain"
+            )
+            
 # --- STUDENT VIEW ---
 elif st.session_state.role == "Student":
     st.subheader("✍️ Student Examination")
@@ -256,3 +278,10 @@ elif st.session_state.role == "Student":
                     st.success("Congratulations! You passed.")
                 else:
                     st.warning("Keep studying and try again!")
+
+# --- NEW: STUDENT DOWNLOAD BUTTON ---
+                st.download_button(
+                    label="Download Your Result Report (TXT)",
+                    data=result_report,
+                    file_name="my_exam_results.txt",
+                    mime="text/plain"
