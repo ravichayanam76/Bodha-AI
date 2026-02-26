@@ -268,11 +268,11 @@ if st.session_state.role == "Examiner":
         if res: st.table(res)
         else: st.info("No submissions yet.")
             
-            if raw_output == "ERROR_429":
+        if raw_output == "ERROR_429":
                 st.error("⚠️ Quota Exceeded. Please wait 60 seconds.")
-            elif "ERROR" in raw_output:
+        elif "ERROR" in raw_output:
                 st.error(raw_output)
-            else:
+        else:
                 quiz_data = parse_generated_questions(raw_output, q_type)
                 if quiz_data:
                     save_quiz_to_disk(quiz_data) # SAVE TO PERSISTENT STORAGE
