@@ -6,6 +6,7 @@ import re
 import os
 import json
 import base64
+import time  # Ensure this is at the very top of your file
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -257,8 +258,6 @@ if st.session_state.role == "Examiner":
                 file_name="quiz_answer_key.txt",
                 mime="text/plain"
             )
-            
-import time  # Ensure this is at the very top of your file
 
 # --- STUDENT VIEW ---
 elif st.session_state.role == "Student":
