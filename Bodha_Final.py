@@ -32,7 +32,8 @@ def save_quiz_to_disk(data):
 def load_quiz_from_disk():
     if os.path.exists(DB_FILE):
         with open(DB_FILE, "r") as f:
-            return json.load(f)
+            try: return json.load(f)
+            except: return []
     return []
 
 def save_student_score(name, score, total):
@@ -65,15 +66,12 @@ def set_background(image_file):
             background-attachment: fixed;
         }}
         section.main > div {{
-            background-color: rgba(255, 255, 255, 0.85);
+            background-color: rgba(255, 255, 255, 0.9);
             padding: 2rem !important;
             border-radius: 15px !important;
+            color: black !important;
         }}
-        [data-testid="stSidebar"] .stMarkdown p, 
-        [data-testid="stSidebar"] label, 
-        [data-testid="stSidebar"] div[data-testid="stWidgetLabel"] p,
-        [data-testid="stWidgetLabel"] p {{ color: #000000 !important; }}
-        
+        [data-testid="stSidebar"] {{ background-color: #f0f2f6 !important; }}
         .stButton button {{
             width: 100%;
             background: linear-gradient(90deg, #1E3A8A 0%, #3B82F6 100%);
@@ -117,43 +115,57 @@ def extract_chapters_from_pdf(file_path):
 
 def parse_generated_questions(raw_text, q_type):
     questions = []
-    # More robust splitting to handle conversational AI filler
-    blocks = re.split(r'\nQ[:\d\.\s]+', "\n" + raw_text)
+    # Split by double newline or Q: indicators
+    blocks = re.split(r'\n(?=Q[:\d\.\s]+)', raw_text)
+    
     for block in blocks:
-        if "Answer:" not in block: continue
+        if "Answer:" not in block and "CORRECT:" not in block.upper():
+            continue
+        
         lines = [l.strip() for l in block.split('\n') if l.strip()]
-        if not lines: continue
+        if len(lines) < 2: continue
         
-        q_text = lines[0]
-        options = [l for l in lines if re.match(r'^[A-D][\)\.]', l)]
-        ans_line = [l for l in lines if "Answer:" in l]
+        # Robustly find Question, Options, and Answer
+        q_text = ""
+        opts = []
+        ans = ""
         
-        if q_text and ans_line:
-            correct_ans = ans_line[0].split(":")[-1].strip()
-            if not options and q_type == "True/False":
-                options = ["True", "False"]
-            if options:
-                questions.append({"question": q_text, "options": options, "answer": correct_ans})
+        for line in lines:
+            if re.match(r'^Q[:\d\.\s]+', line):
+                q_text = re.sub(r'^Q[:\d\.\s]+', '', line).strip()
+            elif re.match(r'^[A-D][\)\.\s]', line):
+                opts.append(line)
+            elif "Answer:" in line or "CORRECT:" in line.upper():
+                ans = line.split(":")[-1].strip()
+        
+        # Fallback for True/False if no options found
+        if not opts and q_type == "True/False":
+            opts = ["True", "False"]
+        
+        if q_text and ans:
+            questions.append({"question": q_text, "options": opts, "answer": ans})
+            
     return questions
 
 @st.cache_data(show_spinner="AI is generating questions...")
 def generate_questions(text, difficulty, num, q_type):
-    if not text.strip(): return "ERROR: PDF is empty or unscannable."
-    # Fixed model ID for 2026 stability
+    if not text.strip(): return "ERROR: PDF is empty."
     model = genai.GenerativeModel("gemini-1.5-flash") 
-    prompt = f"""Generate exactly {num} {difficulty} level {q_type} questions based on this text.
-    Format:
-    Q: [Question]
-    A) Option
-    B) Option
-    C) Option
-    D) Option
-    Answer: [Correct Letter]
     
-    Text: {text[:10000]}"""
+    prompt = f"""Generate {num} {difficulty} level {q_type} questions based on this text.
+    STRICT FORMAT:
+    Q: [Question text]
+    A) [Option]
+    B) [Option]
+    C) [Option]
+    D) [Option]
+    Answer: [Correct Letter Only]
+    
+    TEXT: {text[:10000]}"""
+    
     try:
         response = model.generate_content(prompt)
-        return response.text if response.text else "ERROR: No response"
+        return response.text if response.text else "ERROR"
     except Exception as e:
         return f"ERROR: {str(e)}"
 
@@ -187,12 +199,18 @@ if st.session_state.role == "Examiner":
             with tempfile.NamedTemporaryFile(delete=False) as tmp:
                 tmp.write(uploaded_file.read())
                 txt = extract_chapters_from_pdf(tmp.name)
-            raw = generate_questions(txt, "Medium", num_q, q_type)
-            data = parse_generated_questions(raw, q_type)
+            
+            raw_ai_output = generate_questions(txt, "Medium", num_q, q_type)
+            
+            # For debugging (Optional: remove in production)
+            # st.text_area("Raw AI Response", raw_ai_output) 
+            
+            data = parse_generated_questions(raw_ai_output, q_type)
             if data:
                 save_quiz_to_disk(data)
-                st.success("✅ Exam Published!")
-            else: st.error("Failed to parse AI output. Try again.")
+                st.success(f"✅ Exam Published with {len(data)} questions!")
+            else: 
+                st.error("Failed to parse AI output. AI output didn't follow the Q/A format.")
 
         st.write("---")
         st.subheader("📊 Student Submissions")
@@ -207,27 +225,35 @@ elif st.session_state.role == "Student":
     
     if not quiz: st.info("No exam available.")
     elif st.session_state.exam_submitted:
-        st.success("✅ Exam already submitted. You cannot take it again.")
+        st.success("✅ Exam submitted. You have already completed this session.")
     else:
-        name = st.text_input("Full Name:", placeholder="Enter name to start")
+        name = st.text_input("Full Name:", placeholder="Required to submit")
         if 'start_time' not in st.session_state: st.session_state.start_time = time.time()
         
         timer_box = st.empty()
         with st.form("exam_form"):
-            ans = {}
+            user_ans = {}
             for i, item in enumerate(quiz):
                 st.write(f"**Q{i+1}: {item['question']}**")
-                ans[i] = st.radio("Select:", item['options'], key=f"q{i}", label_visibility="collapsed")
+                user_ans[i] = st.radio("Select:", item['options'], key=f"q{i}", label_visibility="collapsed")
             
-            if st.form_submit_button("Submit Final Answers"):
-                if not name: st.error("Please enter your name.")
+            sub_btn = st.form_submit_button("Submit Final Answers")
+            if sub_btn:
+                if not name:
+                    st.error("Enter your name first!")
                 else:
                     st.session_state.exam_submitted = True
-                    score = sum(1 for i, item in enumerate(quiz) if item['answer'].strip().upper() in ans[i].upper())
-                    save_student_score(name, score, len(quiz))
+                    score = 0
+                    report = f"BODHA AI RESULT\nStudent: {name}\n" + "="*20 + "\n"
+                    for i, item in enumerate(quiz):
+                        is_correct = item['answer'].strip().upper() in user_ans[i].upper()
+                        if is_correct: score += 1
+                        status = "✅" if is_correct else "❌"
+                        report += f"Q{i+1}: {status}\n"
                     
-                    # Generate report for download
-                    report = f"BODHA AI RESULT\nStudent: {name}\nScore: {score}/{len(quiz)}\n"
+                    final_score_str = f"{score}/{len(quiz)}"
+                    save_student_score(name, score, len(quiz))
+                    st.session_state.last_score = final_score_str
                     st.session_state.last_report = report
                     st.rerun()
 
@@ -236,6 +262,5 @@ elif st.session_state.role == "Student":
         timer_box.markdown(f'<div class="timer-container"><span class="timer-text">⏳ {int(rem//60):02d}:{int(rem%60):02d}</span></div>', unsafe_allow_html=True)
 
 if st.session_state.get('exam_submitted') and st.session_state.role == "Student":
-    # Result display and download button outside the form
-    st.metric("Your Score", st.session_state.get('last_score', 'Processed'))
-    st.download_button("📊 Download Report", st.session_state.get('last_report', ''), file_name="result.txt")
+    st.metric("Final Score", st.session_state.get('last_score'))
+    st.download_button("📊 Download Report", st.session_state.get('last_report'), file_name="result.txt")
