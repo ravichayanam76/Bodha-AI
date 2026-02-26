@@ -265,12 +265,23 @@ elif st.session_state.role == "Student":
             
             if submitted:
                 score = 0
+                # Initialize the report string inside the block where it's used
+                result_report = "BODHA AI - STUDENT PERFORMANCE REPORT\n" + "="*40 + "\n\n"
+                
                 for i, item in enumerate(current_quiz):
-                    # Basic string matching for answers
-                    if item['answer'].strip().upper() in user_responses[i].upper():
+                    u_ans = user_responses[i]
+                    # Logic check
+                    is_correct = item['answer'].strip().upper() in u_ans.upper()
+                    if is_correct:
                         score += 1
+                    
+                    status = "✅ CORRECT" if is_correct else "❌ INCORRECT"
+                    result_report += f"Q{i+1}: {item['question']}\nYour Answer: {u_ans}\nStatus: {status}\nCorrect Key: {item['answer']}\n"
+                    result_report += "-"*20 + "\n"
                 
                 percent = (score / len(current_quiz)) * 100
+                result_report += f"\nFINAL SCORE: {score}/{len(current_quiz)} ({percent:.1f}%)"
+                
                 st.metric("Your Result", f"{percent:.1f}%", f"{score}/{len(current_quiz)}")
                 
                 if percent >= 70:
@@ -279,9 +290,9 @@ elif st.session_state.role == "Student":
                 else:
                     st.warning("Keep studying and try again!")
 
-# --- NEW: STUDENT DOWNLOAD BUTTON ---
+                # Place the download button IMMEDIATELY after generating the report
                 st.download_button(
-                    label="Download Your Result Report (TXT)",
+                    label="📊 Download My Result Report (TXT)",
                     data=result_report,
                     file_name="my_exam_results.txt",
                     mime="text/plain"
