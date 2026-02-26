@@ -285,3 +285,4 @@ elif st.session_state.role == "Student":
                     data=result_report,
                     file_name="my_exam_results.txt",
                     mime="text/plain"
+                }
