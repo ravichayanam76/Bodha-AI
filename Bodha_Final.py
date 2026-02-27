@@ -365,5 +365,5 @@ elif st.session_state.role == "Student":
         timer_box.markdown(f'<div class="timer-container"><span class="timer-text">⏳ {int(rem//60):02d}:{int(rem%60):02d}</span></div>', unsafe_allow_html=True)
 
 if st.session_state.get('exam_submitted') and st.session_state.role == "Student":
-    st.metric("Final Score", st.session_state.get('last_score'))
+   # st.metric("Final Score", st.session_state.get('last_score'))
     st.download_button("📊 Download Report", st.session_state.get('last_report'), file_name="result.txt")
