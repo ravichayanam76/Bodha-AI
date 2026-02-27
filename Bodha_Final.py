@@ -388,9 +388,9 @@ elif st.session_state.role == "Student":
             file_name="result.txt",
             key="student_download_final" 
         )
-                    st.session_state.last_score = final_score_str
-                    st.session_state.last_report = report
-                    st.rerun()
+        st.session_state.last_score = final_score_str
+        st.session_state.last_report = report
+        st.rerun()
         # Update Timer
         rem = max(0, 1800 - (time.time() - st.session_state.start_time))
         timer_box.markdown(f'<div class="timer-container"><span class="timer-text">⏳ {int(rem//60):02d}:{int(rem%60):02d}</span></div>', unsafe_allow_html=True)
