@@ -298,49 +298,68 @@ elif st.session_state.role == "Student":
     st.subheader("✍️ Student Examination")
     quiz = load_quiz_from_disk()
     
-    if not quiz: st.info("No exam available.")
-    elif st.session_state.exam_submitted:
+    if not quiz:
+        st.info("No exam available.")
+    # Check if already submitted first to stop further execution
+    elif st.session_state.get('exam_submitted'):
         st.success("✅ Exam submitted. You have already completed this session.")
+        # Display results if they exist in session state
+        if 'last_score' in st.session_state:
+            st.metric("Final Score", st.session_state.last_score)
+            st.download_button("📊 Download Report", st.session_state.last_report, file_name="result.txt")
     else:
         name = st.text_input("Full Name:", placeholder="Required to submit")
-        if 'start_time' not in st.session_state: st.session_state.start_time = time.time()
+        
+        # Timer Logic
+        if 'start_time' not in st.session_state: 
+            st.session_state.start_time = time.time()
         
         timer_box = st.empty()
+        rem = max(0, 1800 - (time.time() - st.session_state.start_time))
+        timer_box.markdown(f'<div class="timer-container"><span class="timer-text">⏳ {int(rem//60):02d}:{int(rem%60):02d}</span></div>', unsafe_allow_html=True)
+
         with st.form("exam_form"):
             user_ans = {}
             for i, item in enumerate(quiz):
                 st.write(f"**Q{i+1}: {item['question']}**")
-                # index=None forces the user to click an option
+                # Fix 2: Remove default selection with index=None
                 user_ans[i] = st.radio(
-                "Select Option:", 
-                item['options'], 
-                key=f"q{i}_{name}", # Making key unique to the student name helps
-                index=None, 
-                label_visibility="collapsed")
+                    "Select:", 
+                    item['options'], 
+                    key=f"q{i}_{name}", # Fix 1: Unique key per student
+                    index=None, 
+                    label_visibility="collapsed"
+                )
             
+            # This is where sub_btn is defined
             sub_btn = st.form_submit_button("Submit Final Answers")
-    if sub_btn:
-        if not name:
-            st.error("Enter your name first!")
-        elif None in user_ans.values(): # Check if all questions are answered
-            st.error("Please answer all questions before submitting.")
-        else:
-            # Calculate score...
-            score = 0
-            for i, item in enumerate(quiz):
-                # Robust checking
-                correct_letter = item['answer'].strip().upper()
-                selected_val = user_ans[i].upper()
-                if selected_val.startswith(correct_letter):
-                    score += 1
-            # Save and Rerun
-            save_student_score(name, score, len(quiz))
-            st.session_state.exam_submitted = True
-            st.rerun()
-                   # st.session_state.last_score = final_score_str
-                    # st.session_state.last_report = report
-                    # st.rerun()
-
+            
+            if sub_btn:
+                if not name:
+                    st.error("Enter your name first!")
+                elif None in user_ans.values():
+                    st.error("Please answer all questions before submitting.")
+                else:
+                    score = 0
+                    report = f"ABAP Assessment RESULT\nStudent: {name}\n" + "="*20 + "\n"
+                    for i, item in enumerate(quiz):
+                        # Enhanced logic to check if selected option matches the answer key
+                        correct_ans = item['answer'].strip().upper()
+                        if user_ans[i] and user_ans[i].strip().upper().startswith(correct_ans):
+                            score += 1
+                            status = "✅"
+                        else:
+                            status = "❌"
+                        report += f"Q{i+1}: {status}\n"
+                    
+                    final_score_str = f"{score}/{len(quiz)}"
+                    save_student_score(name, score, len(quiz))
+                    
+                    # Store results in session state before rerunning
+                    st.session_state.exam_submitted = True
+                    st.session_state.last_score = final_score_str
+                    st.session_state.last_report = report
+                    st.rerun()
         # Update Timer
         rem = max(0, 1800 - (time.time() - st.session_state.start_time))
         timer_box.markdown(f'<div class="timer-container"><span class="timer-text">⏳ {int(rem//60):02d}:{int(rem%60):02d}</span></div>', unsafe_allow_html=True)
