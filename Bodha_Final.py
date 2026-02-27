@@ -294,19 +294,38 @@ if st.session_state.role == "Examiner":
         else:
             st.info("No students have submitted yet.")
 # --- STUDENT VIEW ---
+# --- STUDENT VIEW ---
 elif st.session_state.role == "Student":
     st.subheader("✍️ Student Examination")
     quiz = load_quiz_from_disk()
     
     if not quiz:
         st.info("No exam available.")
-    # Check if already submitted first to stop further execution
+    
+    # CASE 1: Exam already submitted (CHECK INDENTATION HERE)
     elif st.session_state.get('exam_submitted'):
-        st.success("✅ Exam submitted. You have already completed this session.")
-        # Display results if they exist in session state
+        st.success("✅ Exam submitted successfully!")
+        
         if 'last_score' in st.session_state:
-            st.metric("Final Score", st.session_state.last_score)
-            st.download_button("📊 Download Report", st.session_state.last_report, file_name="result.txt")
+            col1, col2 = st.columns(2)
+            with col1:
+                st.metric("Total Score", st.session_state.last_score)
+            with col2:
+                # Color coded Pass/Fail
+                color = "#28a745" if st.session_state.last_status == "PASS" else "#dc3545"
+                st.markdown(f"### Status: <span style='color:{color};'>{st.session_state.last_status}</span>", unsafe_allow_html=True)
+            
+            st.write(f"**Overall Performance: {st.session_state.last_pct:.1f}%**")
+            st.progress(st.session_state.last_pct / 100)
+
+            st.download_button(
+                label="📊 Download Detailed Report", 
+                data=st.session_state.get('last_report', ''), 
+                file_name="result.txt",
+                key="student_download_final" 
+            )
+            
+    # CASE 2: Taking the exam (CHECK INDENTATION HERE)
     else:
         name = st.text_input("Full Name:", placeholder="Required to submit")
         
@@ -322,16 +341,15 @@ elif st.session_state.role == "Student":
             user_ans = {}
             for i, item in enumerate(quiz):
                 st.write(f"**Q{i+1}: {item['question']}**")
-                # Fix 2: Remove default selection with index=None
+                # RADIO FIX: index=None removes default selection
                 user_ans[i] = st.radio(
                     "Select:", 
                     item['options'], 
-                    key=f"q{i}_{name}", # Fix 1: Unique key per student
+                    key=f"q{i}_{name.replace(' ', '_')}", 
                     index=None, 
                     label_visibility="collapsed"
                 )
             
-            # This is where sub_btn is defined
             sub_btn = st.form_submit_button("Submit Final Answers")
             
             if sub_btn:
@@ -343,38 +361,27 @@ elif st.session_state.role == "Student":
                     score = 0
                     report = f"ABAP Assessment RESULT\nStudent: {name}\n" + "="*20 + "\n"
                     for i, item in enumerate(quiz):
-                        # Enhanced logic to check if selected option matches the answer key
-                        correct_ans = item['answer'].strip().upper()
-                        if user_ans[i] and user_ans[i].strip().upper().startswith(correct_ans):
+                        correct_letter = item['answer'].strip().upper()
+                        # Checks if selection starts with correct letter (e.g., "A")
+                        if user_ans[i] and user_ans[i].strip().upper().startswith(correct_letter):
                             score += 1
                             status = "✅"
                         else:
                             status = "❌"
                         report += f"Q{i+1}: {status}\n"
                     
-                    final_score_str = f"{score}/{len(quiz)}"
-                    save_student_score(name, score, len(quiz))
+                    # --- NEW LOGIC FOR PERCENTAGE & PASS/FAIL ---
+                    pct = (score / len(quiz)) * 100
+                    status_text = "PASS" if pct >= 50 else "FAIL"
                     
-                    # Store results in session state before rerunning
-                    # st.session_state.exam_submitted = True
-                    # CASE 1: Exam already submitted
-                elif st.session_state.get('exam_submitted'):
-                        st.success("✅ Exam submitted successfully!")
-    
-                        if 'last_score' in st.session_state:
-                            # Create columns for a nice layout
-                            col1, col2 = st.columns(2)
-                            with col1:
-                                st.metric("Total Score", st.session_state.last_score)
-                            with col2:
-                                # Display Pass/Fail with color formatting
-                                color = "#28a745" if st.session_state.last_status == "PASS" else "#dc3545"
-                                st.markdown(f"### Status: <span style='color:{color};'>{st.session_state.last_status}</span>", unsafe_allow_html=True)
-        
-                    # Display a progress bar for the percentage
-                    st.write(f"**Overall Performance: {st.session_state.last_pct:.1f}%**")
-                    st.progress(st.session_state.last_pct / 100)
-
+                    st.session_state.exam_submitted = True
+                    st.session_state.last_score = f"{score}/{len(quiz)}"
+                    st.session_state.last_pct = pct
+                    st.session_state.last_status = status_text
+                    st.session_state.last_report = report + f"\nResult: {status_text} ({pct:.1f}%)"
+                    
+                    save_student_score(name, score, len(quiz))
+                    st.rerun()
         st.download_button(
             label="📊 Download Detailed Report", 
             data=st.session_state.get('last_report', ''), 
