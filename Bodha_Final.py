@@ -358,7 +358,7 @@ elif st.session_state.role == "Student":
                     # Store results in session state before rerunning
                     # st.session_state.exam_submitted = True
                     # CASE 1: Exam already submitted
-                    elif st.session_state.get('exam_submitted'):
+                elif st.session_state.get('exam_submitted'):
                         st.success("✅ Exam submitted successfully!")
     
                         if 'last_score' in st.session_state:
