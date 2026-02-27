@@ -310,7 +310,13 @@ elif st.session_state.role == "Student":
             user_ans = {}
             for i, item in enumerate(quiz):
                 st.write(f"**Q{i+1}: {item['question']}**")
-                user_ans[i] = st.radio("Select:", item['options'], key=f"q{i}", label_visibility="collapsed")
+                # index=None forces the user to click an option
+                user_ans[i] = st.radio(
+                "Select Option:", 
+                item['options'], 
+                key=f"q{i}_{name}", # Making key unique to the student name helps
+                index=None, 
+                label_visibility="collapsed")
             
             sub_btn = st.form_submit_button("Submit Final Answers")
             if sub_btn:
