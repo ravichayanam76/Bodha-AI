@@ -319,24 +319,27 @@ elif st.session_state.role == "Student":
                 label_visibility="collapsed")
             
             sub_btn = st.form_submit_button("Submit Final Answers")
-            if sub_btn:
-                if not name:
-                    st.error("Enter your name first!")
-                else:
-                    st.session_state.exam_submitted = True
-                    score = 0
-                    report = f"ABAP Assessment RESULT\nStudent: {name}\n" + "="*20 + "\n"
-                    for i, item in enumerate(quiz):
-                        is_correct = item['answer'].strip().upper() in user_ans[i].upper()
-                        if is_correct: score += 1
-                        status = "✅" if is_correct else "❌"
-                        report += f"Q{i+1}: {status}\n"
-                    
-                    final_score_str = f"{score}/{len(quiz)}"
-                    save_student_score(name, score, len(quiz))
-                    st.session_state.last_score = final_score_str
-                    st.session_state.last_report = report
-                    st.rerun()
+    if sub_btn:
+        if not name:
+            st.error("Enter your name first!")
+        elif None in user_ans.values(): # Check if all questions are answered
+            st.error("Please answer all questions before submitting.")
+        else:
+            # Calculate score...
+            score = 0
+            for i, item in enumerate(quiz):
+                # Robust checking
+                correct_letter = item['answer'].strip().upper()
+                selected_val = user_ans[i].upper()
+                if selected_val.startswith(correct_letter):
+                    score += 1
+            # Save and Rerun
+            save_student_score(name, score, len(quiz))
+            st.session_state.exam_submitted = True
+            st.rerun()
+                   # st.session_state.last_score = final_score_str
+                    # st.session_state.last_report = report
+                    # st.rerun()
 
         # Update Timer
         rem = max(0, 1800 - (time.time() - st.session_state.start_time))
