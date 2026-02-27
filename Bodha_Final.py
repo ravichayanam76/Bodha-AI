@@ -356,7 +356,31 @@ elif st.session_state.role == "Student":
                     save_student_score(name, score, len(quiz))
                     
                     # Store results in session state before rerunning
-                    st.session_state.exam_submitted = True
+                    # st.session_state.exam_submitted = True
+                    # CASE 1: Exam already submitted
+                    elif st.session_state.get('exam_submitted'):
+                        st.success("✅ Exam submitted successfully!")
+    
+                        if 'last_score' in st.session_state:
+                            # Create columns for a nice layout
+                            col1, col2 = st.columns(2)
+                            with col1:
+                                st.metric("Total Score", st.session_state.last_score)
+                            with col2:
+                                # Display Pass/Fail with color formatting
+                                color = "#28a745" if st.session_state.last_status == "PASS" else "#dc3545"
+                                st.markdown(f"### Status: <span style='color:{color};'>{st.session_state.last_status}</span>", unsafe_allow_html=True)
+        
+                    # Display a progress bar for the percentage
+                    st.write(f"**Overall Performance: {st.session_state.last_pct:.1f}%**")
+                    st.progress(st.session_state.last_pct / 100)
+
+        st.download_button(
+            label="📊 Download Detailed Report", 
+            data=st.session_state.get('last_report', ''), 
+            file_name="result.txt",
+            key="student_download_final" 
+        )
                     st.session_state.last_score = final_score_str
                     st.session_state.last_report = report
                     st.rerun()
