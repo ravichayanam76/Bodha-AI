@@ -20,7 +20,7 @@ if not api_key:
 
 genai.configure(api_key=api_key)
 
-st.set_page_config(page_title="ABAP Assessment - Smart Exam", layout="centered")
+st.set_page_config(page_title="ADOBE Form Assessment - Smart Exam", layout="centered")
 
 DB_FILE = "global_quiz_data.json"
 RESULTS_FILE = "student_submissions.json"
@@ -372,7 +372,7 @@ elif st.session_state.role == "Student":
                     
                     # --- NEW LOGIC FOR PERCENTAGE & PASS/FAIL ---
                     pct = (score / len(quiz)) * 100
-                    status_text = "PASS" if pct >= 50 else "FAIL"
+                    status_text = "PASS" if pct >= 70 else "FAIL"
                     
                     st.session_state.exam_submitted = True
                     st.session_state.last_score = f"{score}/{len(quiz)}"
