@@ -213,7 +213,7 @@ def generate_questions(text, difficulty, num, q_type):
         return f"ERROR: {str(e)}"
 
 # --- UI LAYOUT ---
-st.markdown("<h1 style='text-align: center; color: #1E3A8A;'>ADOBE Form Assessment Exam Portal</h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align: center; color: #1E3A8A;'>ADOBE Form Assessment</h1>", unsafe_allow_html=True)
 st.sidebar.title("Navigation")
 st.session_state.role = st.sidebar.radio("Select Role:", ["Student", "Examiner"])
 
