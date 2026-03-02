@@ -20,7 +20,7 @@ if not api_key:
 
 genai.configure(api_key=api_key)
 
-st.set_page_config(page_title="ADOBE Form Assessment - Smart Exam", layout="centered")
+st.set_page_config(page_title="ABAP on HANA Assessment - Smart Exam", layout="centered")
 
 DB_FILE = "global_quiz_data.json"
 RESULTS_FILE = "student_submissions.json"
@@ -213,7 +213,7 @@ def generate_questions(text, difficulty, num, q_type):
         return f"ERROR: {str(e)}"
 
 # --- UI LAYOUT ---
-st.markdown("<h1 style='text-align: center; color: #1E3A8A;'>ADOBE Form Assessment</h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align: center; color: #1E3A8A;'>ABAP on HANA Assessment</h1>", unsafe_allow_html=True)
 st.sidebar.title("Navigation")
 st.session_state.role = st.sidebar.radio("Select Role:", ["Student", "Examiner"])
 
