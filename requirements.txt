@@ -3,3 +3,4 @@ pdfplumber
 Pillow
 google-generativeai
 python-dotenv
+fpdf
