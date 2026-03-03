@@ -8,9 +8,10 @@ import json
 import base64
 import time  
 import io
+import FPDF
 from pathlib import Path
 from dotenv import load_dotenv
-from fpdf import FPDF
+from fpdf 
 
 # --- CONFIG & PERSISTENCE ---
 load_dotenv()
