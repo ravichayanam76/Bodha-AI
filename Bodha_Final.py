@@ -359,26 +359,45 @@ elif st.session_state.role == "Student":
                     st.error("Please answer all questions before submitting.")
                 else:
                     score = 0
-                    report = f"ABAP Assessment RESULT\nStudent: {name}\n" + "="*20 + "\n"
+                    # HEADER FOR REPORT
+                    report = f"ABAP Assessment RESULT\nStudent: {name}\n"
+                    report += f"Date: {time.strftime('%Y-%m-%d %H:%M:%S')}\n"
+                    report += "="*30 + "\n\n"
+                    
                     for i, item in enumerate(quiz):
                         correct_letter = item['answer'].strip().upper()
-                        # Checks if selection starts with correct letter (e.g., "A")
-                        if user_ans[i] and user_ans[i].strip().upper().startswith(correct_letter):
+                        selected_option = user_ans[i]
+                        
+                        # Check correctness
+                        if selected_option and selected_option.strip().upper().startswith(correct_letter):
                             score += 1
-                            status = "✅"
+                            status = "CORRECT ✅"
                         else:
-                            status = "❌"
-                        report += f"Q{i+1}: {status}\n"
+                            status = "INCORRECT ❌"
+                        
+                        # --- ADDING DETAIL TO REPORT ---
+                        report += f"Question {i+1}: {item['question']}\n"
+                        report += f"Your Selection: {selected_option}\n"
+                        report += f"Correct Answer: {item['answer']}\n"
+                        report += f"Result: {status}\n"
+                        report += "-"*20 + "\n"
                     
-                    # --- NEW LOGIC FOR PERCENTAGE & PASS/FAIL ---
+                    # --- CALCULATE TOTALS ---
                     pct = (score / len(quiz)) * 100
                     status_text = "PASS" if pct >= 70 else "FAIL"
                     
+                    # Update Session State
                     st.session_state.exam_submitted = True
                     st.session_state.last_score = f"{score}/{len(quiz)}"
                     st.session_state.last_pct = pct
                     st.session_state.last_status = status_text
-                    st.session_state.last_report = report + f"\nResult: {status_text} ({pct:.1f}%)"
+                    
+                    # Finalize Report Text
+                    report += f"\nSUMMARY\n"
+                    report += f"Total Score: {score}/{len(quiz)}\n"
+                    report += f"Percentage: {pct:.1f}%\n"
+                    report += f"Status: {status_text}\n"
+                    st.session_state.last_report = report
                     
                     save_student_score(name, score, len(quiz))
                     st.rerun()
