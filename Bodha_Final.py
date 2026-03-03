@@ -7,11 +7,10 @@ import os
 import json
 import base64
 import time  
-import io
-import FPDF
 from pathlib import Path
 from dotenv import load_dotenv
-from fpdf 
+from fpdf import FPDF
+import io
 
 # --- CONFIG & PERSISTENCE ---
 load_dotenv()
