@@ -53,7 +53,33 @@ def load_all_results():
             try: return json.load(f)
             except: return []
     return []
+# --- ADD THIS HELPER FUNCTION BELOW load_all_results() ---
+def create_pdf_report(results_data):
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", "B", 16)
+    pdf.cell(190, 10, "Student Assessment Submissions", ln=True, align="C")
+    pdf.ln(10)
 
+# Table Header
+    pdf.set_font("Arial", "B", 10)
+    pdf.set_fill_color(200, 220, 255)
+    pdf.cell(50, 10, "Student Name", 1, 0, 'C', True)
+    pdf.cell(30, 10, "Score", 1, 0, 'C', True)
+    pdf.cell(30, 10, "Percentage", 1, 0, 'C', True)
+    pdf.cell(80, 10, "Timestamp", 1, 1, 'C', True)
+    
+    # Table Body
+    pdf.set_font("Arial", "", 10)
+    for res in results_data:
+        pdf.cell(50, 10, str(res["Student Name"]), 1)
+        pdf.cell(30, 10, str(res["Score"]), 1, 0, 'C')
+        pdf.cell(30, 10, str(res["Percentage"]), 1, 0, 'C')
+        pdf.cell(80, 10, str(res["Timestamp"]), 1, 1, 'C')
+    
+    # Return as bytes
+    return pdf.output(dest='S').encode('latin-1')
+    
 # --- UI STYLING ---
 def set_background(image_file):
     try:
@@ -291,6 +317,15 @@ if st.session_state.role == "Examiner":
         all_results = load_all_results()
         if all_results:
             st.table(all_results)
+            
+            # PDF Download Logic
+            pdf_bytes = create_pdf_report(all_results)
+            st.download_button(
+                label="📄 Download Results as PDF",
+                data=pdf_bytes,
+                file_name="student_results.pdf",
+                mime="application/pdf"
+            )
         else:
             st.info("No students have submitted yet.")
 # --- STUDENT VIEW ---
