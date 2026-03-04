@@ -327,28 +327,39 @@ if st.session_state.role == "Examiner":
                         st.error("❌ Header Validation Failed: First page must contain 'Questions' header.")
             
             else:
-                # AI Batch Generation Logic
+                # Optimized AI Generation
                 full_text = extract_chapters_from_pdf(temp_path)
-                batch_size = 15
                 total_needed = num_q
-                progress_bar = st.progress(0)
-                status_gen = st.info("AI is crafting your question paper...")
+                batch_size = 15  
                 
-                while len(final_quiz) < total_needed:
-                    current_batch = min(batch_size, total_needed - len(final_quiz))
-                    status_text.write(f"⏳ Generated **{len(final_quiz)}** of **{total_needed}** questions...")
-                    raw_output = generate_questions(full_text, diff, current_batch, q_type)
-                    
-                    if "ERROR" not in raw_output:
-                        batch_data = parse_generated_questions(raw_output, q_type)
-                        for item in batch_data:
-                            if item['question'] not in seen_questions:
-                                final_quiz.append(item)
-                                seen_questions.add(item['question'])
+                progress_bar = st.progress(0)
+                # FIX: Initialize status_text BEFORE the while loop
+                status_text = st.empty() 
+                
+                with st.spinner("AI is generating questions. This may take a minute for 50 questions..."):
+                    while len(final_quiz) < total_needed:
+                        current_batch = min(batch_size, total_needed - len(final_quiz))
                         
-                        progress_bar.progress(min(len(final_quiz) / total_needed, 1.0))
-                    else:
-                        break
+                        # Now status_text is guaranteed to exist
+                        status_text.write(f"⏳ Generated **{len(final_quiz)}** of **{total_needed}** questions...")
+                        
+                        raw_output = generate_questions(full_text, diff, current_batch, q_type)
+                        
+                        if "ERROR" not in raw_output:
+                            batch_data = parse_generated_questions(raw_output, q_type)
+                            for item in batch_data:
+                                if item['question'] not in seen_questions:
+                                    final_quiz.append(item)
+                                    seen_questions.add(item['question'])
+                            
+                            prog = min(len(final_quiz) / total_needed, 1.0)
+                            progress_bar.progress(prog)
+                        else:
+                            st.error(f"AI Error: {raw_output}")
+                            break
+                            
+                # Cleanup the status text after loop finishes
+                status_text.empty()
                     time.sleep(1)
                 status_gen.empty()
 
