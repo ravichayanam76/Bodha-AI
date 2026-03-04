@@ -31,7 +31,7 @@ def save_quiz_to_disk(data):
     with open(DB_FILE, "w") as f:
         json.dump(data, f)
 
-def _quiz_from_disk():
+def load_quiz_from_disk():
     if os.path.exists(DB_FILE):
         with open(DB_FILE, "r") as f:
             try: return json.load(f)
