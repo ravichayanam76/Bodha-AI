@@ -281,6 +281,10 @@ if st.session_state.role == "Examiner":
             st.rerun()
 
         uploaded_file = st.file_uploader("Upload Exam PDF", type=["pdf"])
+        
+        # New Radio Button for Generation Mode
+        gen_mode = st.radio("Generation Mode", ["Generate Questions", "Generate Question as Is"], horizontal=True)
+
         col1, col2 = st.columns(2)
         with col1:
             q_type = st.selectbox("Type", ["MCQ", "True/False"])
@@ -288,49 +292,57 @@ if st.session_state.role == "Examiner":
         with col2:
             num_q = st.slider("Number of Questions", 1, 50, 5)
 
-        # --- IMPROVED GENERATION LOGIC ---
-        if uploaded_file and st.button("Generate & Publish Exam"):
+        # --- UPDATED GENERATION LOGIC ---
+        if uploaded_file and st.button("Publish Exam"):
             with tempfile.NamedTemporaryFile(delete=False) as tmp:
                 tmp.write(uploaded_file.read())
-                full_text = extract_chapters_from_pdf(tmp.name)
-            
-            # Split into batches to avoid token limits
-            batch_size = 25
-            total_needed = num_q
-            all_quiz_data = []
-            
-            progress_bar = st.progress(0)
-            status_text = st.empty()
-            
-            # Calculate how many loops we need
-            loops = (total_needed // batch_size) + (1 if total_needed % batch_size > 0 else 0)
-            
-            for i in range(loops):
-                current_batch_num = min(batch_size, total_needed - len(all_quiz_data))
-                status_text.text(f"Generating batch {i+1} ({current_batch_num} questions)...")
-                
-                raw_output = generate_questions(full_text, diff, current_batch_num, q_type)
-                
-                if "ERROR" in raw_output:
-                    st.error(f"Error in batch {i+1}: {raw_output}")
-                    break
-                
-                batch_data = parse_generated_questions(raw_output, q_type)
-                all_quiz_data.extend(batch_data)
-                
-                # Update progress
-                progress_bar.progress(len(all_quiz_data) / total_needed)
-                time.sleep(1) # Small delay to avoid rate limits
-            
-            if all_quiz_data:
-                # Trim if AI over-generated
-                final_quiz = all_quiz_data[:total_needed]
-                save_quiz_to_disk(final_quiz)
-                st.success(f"✅ Exam with {len(final_quiz)} questions published!")
-                st.rerun()
-            else:
-                st.error("Failed to generate questions. Please check your API key or PDF content.")
+                temp_path = tmp.name
 
+            final_quiz = []
+
+            if gen_mode == "Generate Question as Is":
+                # Logic to extract exact questions from PDF table
+                with pdfplumber.open(temp_path) as pdf:
+                    first_page = pdf.pages[0]
+                    table = first_page.extract_table()
+                    
+                    # Validate Header based on your image
+                    # Header: [Questions, Option A, Option B, Option C, Option D, Correct Answer]
+                    if table and "Questions" in str(table[0]):
+                        # Skip header and iterate rows
+                        for row in table[1:]:
+                            if len(row) >= 6:
+                                final_quiz.append({
+                                    "question": str(row[0]),
+                                    "options": [f"A) {row[1]}", f"B) {row[2]}", f"C) {row[3]}", f"D) {row[4]}"],
+                                    "answer": str(row[5]).strip()
+                                })
+                        st.success(f"✅ Extracted {len(final_quiz)} questions exactly from PDF.")
+                    else:
+                        st.error("❌ PDF header does not match required format: 'Questions, Option A, Option B...'")
+            
+            else:
+                # Standard AI Generation Logic (Batching)
+                full_text = extract_chapters_from_pdf(temp_path)
+                batch_size = 25
+                total_needed = num_q
+                progress_bar = st.progress(0)
+                
+                loops = (total_needed // batch_size) + (1 if total_needed % batch_size > 0 else 0)
+                for i in range(loops):
+                    current_batch_num = min(batch_size, total_needed - len(final_quiz))
+                    raw_output = generate_questions(full_text, diff, current_batch_num, q_type)
+                    
+                    if "ERROR" not in raw_output:
+                        batch_data = parse_generated_questions(raw_output, q_type)
+                        final_quiz.extend(batch_data)
+                        progress_bar.progress(len(final_quiz) / total_needed)
+                    time.sleep(1)
+
+            if final_quiz:
+                save_quiz_to_disk(final_quiz[:num_q] if gen_mode == "Generate Questions" else final_quiz)
+                st.success("✅ Exam Published!")
+                st.rerun()
         # --- DOWNLOAD & RESULTS SECTION ---
         # This part runs regardless of whether you just clicked generate
         current_quiz = load_quiz_from_disk()
