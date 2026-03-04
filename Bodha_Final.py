@@ -186,34 +186,37 @@ def extract_chapters_from_pdf(file_path):
 
 def parse_generated_questions(raw_text, q_type):
     questions = []
-    # Split by double newline or Q: indicators
-    blocks = re.split(r'\n(?=Q[:\d\.\s]+)', raw_text)
+    # Improved regex to catch Q:, 1., Question: etc.
+    blocks = re.split(r'\n(?=(?:Q|Question|\d+)\s*[:\).])', raw_text)
     
     for block in blocks:
-        if "Answer:" not in block and "CORRECT:" not in block.upper():
+        # Check if block contains an answer indicator
+        if not re.search(r'(Answer|CORRECT):', block, re.IGNORECASE):
             continue
         
         lines = [l.strip() for l in block.split('\n') if l.strip()]
         if len(lines) < 2: continue
         
-        # Robustly find Question, Options, and Answer
         q_text = ""
         opts = []
         ans = ""
         
         for line in lines:
-            if re.match(r'^Q[:\d\.\s]+', line):
-                q_text = re.sub(r'^Q[:\d\.\s]+', '', line).strip()
-            elif re.match(r'^[A-D][\)\.\s]', line):
+            # Match Question
+            if re.match(r'^(?:Q|Question|\d+)\s*[:\).]', line, re.IGNORECASE):
+                q_text = re.sub(r'^(?:Q|Question|\d+)\s*[:\).]', '', line).strip()
+            # Match Options A) B) C) D) or A. B. C. D.
+            elif re.match(r'^[A-D][\)\.\s]', line, re.IGNORECASE):
                 opts.append(line)
-            elif "Answer:" in line or "CORRECT:" in line.upper():
-                ans = line.split(":")[-1].strip()
+            # Match Answer
+            elif re.search(r'(Answer|CORRECT):', line, re.IGNORECASE):
+                ans = line.split(":")[-1].strip().upper()
         
-        # Fallback for True/False if no options found
         if not opts and q_type == "True/False":
             opts = ["True", "False"]
         
-        if q_text and ans:
+        # Validation: Only add if we have a question and at least 2 options (or T/F)
+        if q_text and (len(opts) >= 2):
             questions.append({"question": q_text, "options": opts, "answer": ans})
             
     return questions
@@ -221,25 +224,34 @@ def parse_generated_questions(raw_text, q_type):
 @st.cache_data(show_spinner="AI is generating questions...")
 def generate_questions(text, difficulty, num, q_type):
     if not text.strip(): return "ERROR: PDF is empty."
-    model = genai.GenerativeModel("gemini-2.5-flash") 
     
-    prompt = f"""Generate {num} {difficulty} level {q_type} questions based on this text.
-    STRICT FORMAT:
-    Q: [Question text]
-    A) [Option]
-    B) [Option]
-    C) [Option]
-    D) [Option]
-    Answer: [Correct Letter Only]
+    # Use the stable model name
+    model = genai.GenerativeModel("gemini-1.5-flash") 
     
-    TEXT: {text[:10000]}"""
+    # Updated prompt to enforce the number of questions strictly
+    prompt = f"""You are an expert examiner. Generate EXACTLY {num} {difficulty} level {q_type} questions based on the text below.
+    
+    STRICT RULES:
+    1. You must output exactly {num} questions.
+    2. Use this format for every single question:
+       Q: [Question text]
+       A) [Option]
+       B) [Option]
+       C) [Option]
+       D) [Option]
+       Answer: [Correct Letter Only]
+
+    TEXT:
+    {text[:15000]}""" # Increased text limit slightly
     
     try:
         response = model.generate_content(prompt)
-        return response.text if response.text else "ERROR"
+        if response.text:
+            return response.text
+        else:
+            return "ERROR: AI returned empty response."
     except Exception as e:
         return f"ERROR: {str(e)}"
-
 # --- UI LAYOUT ---
 st.markdown("<h1 style='text-align: center; color: #1E3A8A;'>ABAP on HANA Assessment</h1>", unsafe_allow_html=True)
 st.sidebar.title("Navigation")
