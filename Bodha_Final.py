@@ -300,6 +300,10 @@ if st.session_state.role == "Examiner":
             final_quiz = []
             seen_questions = set()
 
+            # 1. Initialize placeholders globally within this button click to avoid NameError
+            status_placeholder = st.empty() 
+            progress_bar = st.progress(0)
+            
             if gen_mode == "Generate Question as Is":
                 with pdfplumber.open(temp_path) as pdf:
                     first_page_table = pdf.pages[0].extract_table()
@@ -332,16 +336,16 @@ if st.session_state.role == "Examiner":
                 total_needed = num_q
                 batch_size = 15  
                 
-                progress_bar = st.progress(0)
                 # FIX: Initialize status_text BEFORE the while loop
                 status_text = st.empty() 
+                progress_bar = st.progress(0)
                 
                 with st.spinner("AI is generating questions. This may take a minute for 50 questions..."):
                     while len(final_quiz) < total_needed:
                         current_batch = min(batch_size, total_needed - len(final_quiz))
                         
                         # Now status_text is guaranteed to exist
-                        status_text.write(f"⏳ Generated **{len(final_quiz)}** of **{total_needed}** questions...")
+                        status_placeholder.write(f"⏳ Generated **{len(final_quiz)}** of **{total_needed}** questions...")
                         
                         raw_output = generate_questions(full_text, diff, current_batch, q_type)
                         
@@ -360,7 +364,7 @@ if st.session_state.role == "Examiner":
                             
                 # Cleanup the status text after loop finishes
                 time.sleep(1)
-                status_gen.empty()
+                status_placeholder.empty() # Safely clears the status text
 
             if final_quiz:
                 # Save data
