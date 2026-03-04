@@ -291,32 +291,28 @@ if st.session_state.role == "Examiner":
         with col2:
             num_q = st.slider("Number of Questions", 1, 50, 5)
 
-        # --- FIXED GENERATION LOGIC ---
+        # --- FIXED GENERATION LOGIC WITH SUCCESS MESSAGE ---
         if uploaded_file and st.button("Publish Exam"):
             with tempfile.NamedTemporaryFile(delete=False) as tmp:
                 tmp.write(uploaded_file.read())
                 temp_path = tmp.name
 
             final_quiz = []
-            seen_questions = set()  # To prevent duplicates
+            seen_questions = set()
 
             if gen_mode == "Generate Question as Is":
                 with pdfplumber.open(temp_path) as pdf:
-                    # HEADER VALIDATION: Only on the first page
                     first_page_table = pdf.pages[0].extract_table()
                     
                     if first_page_table and "Questions" in str(first_page_table[0]):
+                        status_msg = st.info("Reading PDF and validating headers...")
                         for page in pdf.pages:
                             table_data = page.extract_table()
                             if not table_data: continue
                             
-                            # Skip header only if it appears at the top of the current page
-                            start_idx = 0
-                            if "Questions" in str(table_data[0]):
-                                start_idx = 1
+                            start_idx = 1 if "Questions" in str(table_data[0]) else 0
                             
                             for row in table_data[start_idx:]:
-                                # Clean data and check for 6 columns + unique question text
                                 if len(row) >= 6 and row[0]:
                                     q_text = str(row[0]).strip()
                                     if q_text not in seen_questions:
@@ -326,7 +322,7 @@ if st.session_state.role == "Examiner":
                                             "answer": str(row[5]).strip().upper()
                                         })
                                         seen_questions.add(q_text)
-                        st.success(f"✅ Extracted {len(final_quiz)} unique questions from PDF.")
+                        status_msg.empty()
                     else:
                         st.error("❌ Header Validation Failed: First page must contain 'Questions' header.")
             
@@ -336,6 +332,7 @@ if st.session_state.role == "Examiner":
                 batch_size = 25
                 total_needed = num_q
                 progress_bar = st.progress(0)
+                status_gen = st.info("AI is crafting your question paper...")
                 
                 while len(final_quiz) < total_needed:
                     current_batch = min(batch_size, total_needed - len(final_quiz))
@@ -352,10 +349,18 @@ if st.session_state.role == "Examiner":
                     else:
                         break
                     time.sleep(1)
+                status_gen.empty()
 
             if final_quiz:
+                # Save data
                 save_quiz_to_disk(final_quiz[:num_q] if gen_mode == "Generate Questions" else final_quiz)
-                st.success("✅ Exam Published!")
+                
+                # --- THE FIX: PERSISTENT MESSAGE ---
+                st.success(f"✅ Question paper generated! {len(final_quiz)} questions published successfully.")
+                st.toast("Exam Published!", icon="🚀")
+                
+                # Give the user 2 seconds to see the message before rerunning
+                time.sleep(2) 
                 st.rerun()
         # --- DOWNLOAD & RESULTS SECTION ---
         # This part runs regardless of whether you just clicked generate
