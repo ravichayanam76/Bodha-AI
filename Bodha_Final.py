@@ -288,26 +288,48 @@ if st.session_state.role == "Examiner":
         with col2:
             num_q = st.slider("Number of Questions", 1, 50, 5)
 
-        # GENERATION LOGIC
+        # --- IMPROVED GENERATION LOGIC ---
         if uploaded_file and st.button("Generate & Publish Exam"):
             with tempfile.NamedTemporaryFile(delete=False) as tmp:
                 tmp.write(uploaded_file.read())
                 full_text = extract_chapters_from_pdf(tmp.name)
             
-            # This is where raw_output is defined
-            raw_output = generate_questions(full_text, diff, num_q, q_type)
+            # Split into batches to avoid token limits
+            batch_size = 25
+            total_needed = num_q
+            all_quiz_data = []
             
-            if raw_output == "ERROR_429":
-                st.error("⚠️ Quota Exceeded. Please wait 60 seconds.")
-            elif "ERROR" in raw_output:
-                st.error(raw_output)
+            progress_bar = st.progress(0)
+            status_text = st.empty()
+            
+            # Calculate how many loops we need
+            loops = (total_needed // batch_size) + (1 if total_needed % batch_size > 0 else 0)
+            
+            for i in range(loops):
+                current_batch_num = min(batch_size, total_needed - len(all_quiz_data))
+                status_text.text(f"Generating batch {i+1} ({current_batch_num} questions)...")
+                
+                raw_output = generate_questions(full_text, diff, current_batch_num, q_type)
+                
+                if "ERROR" in raw_output:
+                    st.error(f"Error in batch {i+1}: {raw_output}")
+                    break
+                
+                batch_data = parse_generated_questions(raw_output, q_type)
+                all_quiz_data.extend(batch_data)
+                
+                # Update progress
+                progress_bar.progress(len(all_quiz_data) / total_needed)
+                time.sleep(1) # Small delay to avoid rate limits
+            
+            if all_quiz_data:
+                # Trim if AI over-generated
+                final_quiz = all_quiz_data[:total_needed]
+                save_quiz_to_disk(final_quiz)
+                st.success(f"✅ Exam with {len(final_quiz)} questions published!")
+                st.rerun()
             else:
-                quiz_data = parse_generated_questions(raw_output, q_type)
-                if quiz_data:
-                    save_quiz_to_disk(quiz_data)
-                    st.success(f"✅ Exam with {len(quiz_data)} questions published!")
-                else:
-                    st.error("AI output didn't follow the Q/A format. Try adjusting the PDF.")
+                st.error("Failed to generate questions. Please check your API key or PDF content.")
 
         # --- DOWNLOAD & RESULTS SECTION ---
         # This part runs regardless of whether you just clicked generate
