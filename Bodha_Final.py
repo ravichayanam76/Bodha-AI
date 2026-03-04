@@ -285,6 +285,7 @@ if st.session_state.role == "Examiner":
         # New Radio Button for Generation Mode
         gen_mode = st.radio("Generation Mode", ["Generate Questions", "Generate Question as Is"], horizontal=True)
 
+        uploaded_file = st.file_uploader("Upload Exam PDF", type=["pdf"])
         col1, col2 = st.columns(2)
         with col1:
             q_type = st.selectbox("Type", ["MCQ", "True/False"])
@@ -301,28 +302,37 @@ if st.session_state.role == "Examiner":
             final_quiz = []
 
             if gen_mode == "Generate Question as Is":
-                # Logic to extract exact questions from PDF table
                 with pdfplumber.open(temp_path) as pdf:
+                    # HEADER VALIDATION: Done ONLY for the first page
                     first_page = pdf.pages[0]
-                    table = first_page.extract_table()
+                    first_table = first_page.extract_table()
                     
-                    # Validate Header based on your image
-                    # Header: [Questions, Option A, Option B, Option C, Option D, Correct Answer]
-                    if table and "Questions" in str(table[0]):
-                        # Skip header and iterate rows
-                        for row in table[1:]:
-                            if len(row) >= 6:
-                                final_quiz.append({
-                                    "question": str(row[0]),
-                                    "options": [f"A) {row[1]}", f"B) {row[2]}", f"C) {row[3]}", f"D) {row[4]}"],
-                                    "answer": str(row[5]).strip()
-                                })
-                        st.success(f"✅ Extracted {len(final_quiz)} questions exactly from PDF.")
+                    # Check if table exists and first row matches your image headers
+                    if first_table and "Questions" in str(first_table[0]) and "Correct Answer" in str(first_table[0]):
+                        st.info("Header validated on first page. Extracting questions 'As Is'...")
+                        
+                        # Process all pages now that the first page header is confirmed
+                        for page in pdf.pages:
+                            table_data = page.extract_table()
+                            if not table_data:
+                                continue
+                            
+                            # Skip the header row if it repeats on subsequent pages, else take all rows
+                            start_row = 1 if "Questions" in str(table_data[0]) else 0
+                            
+                            for row in table_data[start_row:]:
+                                # Ensure row has enough columns (Questions, 4 Options, Answer)
+                                if len(row) >= 6 and row[0]: 
+                                    final_quiz.append({
+                                        "question": str(row[0]),
+                                        "options": [f"A) {row[1]}", f"B) {row[2]}", f"C) {row[3]}", f"D) {row[4]}"],
+                                        "answer": str(row[5]).strip()
+                                    })
                     else:
-                        st.error("❌ PDF header does not match required format: 'Questions, Option A, Option B...'")
+                        st.error("❌ Invalid PDF Format: The first page must contain the table headers: 'Questions', 'Option A', etc.")
             
             else:
-                # Standard AI Generation Logic (Batching)
+                # Standard AI Generation Logic with Batching
                 full_text = extract_chapters_from_pdf(temp_path)
                 batch_size = 25
                 total_needed = num_q
@@ -336,12 +346,14 @@ if st.session_state.role == "Examiner":
                     if "ERROR" not in raw_output:
                         batch_data = parse_generated_questions(raw_output, q_type)
                         final_quiz.extend(batch_data)
-                        progress_bar.progress(len(final_quiz) / total_needed)
+                        progress_bar.progress(min(len(final_quiz) / total_needed, 1.0))
                     time.sleep(1)
 
+            # SAVE AND REFRESH
             if final_quiz:
+                # If generating, respect the slider limit; if "As Is", take all found
                 save_quiz_to_disk(final_quiz[:num_q] if gen_mode == "Generate Questions" else final_quiz)
-                st.success("✅ Exam Published!")
+                st.success(f"✅ Exam with {len(final_quiz)} questions published!")
                 st.rerun()
         # --- DOWNLOAD & RESULTS SECTION ---
         # This part runs regardless of whether you just clicked generate
