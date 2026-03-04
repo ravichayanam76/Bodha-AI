@@ -226,7 +226,7 @@ def generate_questions(text, difficulty, num, q_type):
     if not text.strip(): return "ERROR: PDF is empty."
     
     # Use the stable model name
-    model = genai.GenerativeModel("gemini-1.5-flash") 
+    model = genai.GenerativeModel("gemini-2.5-flash") 
     
     # Updated prompt to enforce the number of questions strictly
     prompt = f"""You are an expert examiner. Generate EXACTLY {num} {difficulty} level {q_type} questions based on the text below.
