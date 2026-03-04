@@ -329,13 +329,14 @@ if st.session_state.role == "Examiner":
             else:
                 # AI Batch Generation Logic
                 full_text = extract_chapters_from_pdf(temp_path)
-                batch_size = 25
+                batch_size = 15
                 total_needed = num_q
                 progress_bar = st.progress(0)
                 status_gen = st.info("AI is crafting your question paper...")
                 
                 while len(final_quiz) < total_needed:
                     current_batch = min(batch_size, total_needed - len(final_quiz))
+                    status_text.write(f"⏳ Generated **{len(final_quiz)}** of **{total_needed}** questions...")
                     raw_output = generate_questions(full_text, diff, current_batch, q_type)
                     
                     if "ERROR" not in raw_output:
