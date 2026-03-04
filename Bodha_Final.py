@@ -31,7 +31,7 @@ def save_quiz_to_disk(data):
     with open(DB_FILE, "w") as f:
         json.dump(data, f)
 
-def load_quiz_from_disk():
+def _quiz_from_disk():
     if os.path.exists(DB_FILE):
         with open(DB_FILE, "r") as f:
             try: return json.load(f)
@@ -293,67 +293,71 @@ if st.session_state.role == "Examiner":
         with col2:
             num_q = st.slider("Number of Questions", 1, 50, 5)
 
-        # --- UPDATED GENERATION LOGIC ---
+        # --- FIXED GENERATION LOGIC ---
         if uploaded_file and st.button("Publish Exam"):
             with tempfile.NamedTemporaryFile(delete=False) as tmp:
                 tmp.write(uploaded_file.read())
                 temp_path = tmp.name
 
             final_quiz = []
+            seen_questions = set()  # To prevent duplicates
 
             if gen_mode == "Generate Question as Is":
                 with pdfplumber.open(temp_path) as pdf:
-                    # HEADER VALIDATION: Done ONLY for the first page
-                    first_page = pdf.pages[0]
-                    first_table = first_page.extract_table()
+                    # HEADER VALIDATION: Only on the first page
+                    first_page_table = pdf.pages[0].extract_table()
                     
-                    # Check if table exists and first row matches your image headers
-                    if first_table and "Questions" in str(first_table[0]) and "Correct Answer" in str(first_table[0]):
-                        st.info("Header validated on first page. Extracting questions 'As Is'...")
-                        
-                        # Process all pages now that the first page header is confirmed
+                    if first_page_table and "Questions" in str(first_page_table[0]):
                         for page in pdf.pages:
                             table_data = page.extract_table()
-                            if not table_data:
-                                continue
+                            if not table_data: continue
                             
-                            # Skip the header row if it repeats on subsequent pages, else take all rows
-                            start_row = 1 if "Questions" in str(table_data[0]) else 0
+                            # Skip header only if it appears at the top of the current page
+                            start_idx = 0
+                            if "Questions" in str(table_data[0]):
+                                start_idx = 1
                             
-                            for row in table_data[start_row:]:
-                                # Ensure row has enough columns (Questions, 4 Options, Answer)
-                                if len(row) >= 6 and row[0]: 
-                                    final_quiz.append({
-                                        "question": str(row[0]),
-                                        "options": [f"A) {row[1]}", f"B) {row[2]}", f"C) {row[3]}", f"D) {row[4]}"],
-                                        "answer": str(row[5]).strip()
-                                    })
+                            for row in table_data[start_idx:]:
+                                # Clean data and check for 6 columns + unique question text
+                                if len(row) >= 6 and row[0]:
+                                    q_text = str(row[0]).strip()
+                                    if q_text not in seen_questions:
+                                        final_quiz.append({
+                                            "question": q_text,
+                                            "options": [f"A) {row[1]}", f"B) {row[2]}", f"C) {row[3]}", f"D) {row[4]}"],
+                                            "answer": str(row[5]).strip().upper()
+                                        })
+                                        seen_questions.add(q_text)
+                        st.success(f"✅ Extracted {len(final_quiz)} unique questions from PDF.")
                     else:
-                        st.error("❌ Invalid PDF Format: The first page must contain the table headers: 'Questions', 'Option A', etc.")
+                        st.error("❌ Header Validation Failed: First page must contain 'Questions' header.")
             
             else:
-                # Standard AI Generation Logic with Batching
+                # AI Batch Generation Logic
                 full_text = extract_chapters_from_pdf(temp_path)
                 batch_size = 25
                 total_needed = num_q
                 progress_bar = st.progress(0)
                 
-                loops = (total_needed // batch_size) + (1 if total_needed % batch_size > 0 else 0)
-                for i in range(loops):
-                    current_batch_num = min(batch_size, total_needed - len(final_quiz))
-                    raw_output = generate_questions(full_text, diff, current_batch_num, q_type)
+                while len(final_quiz) < total_needed:
+                    current_batch = min(batch_size, total_needed - len(final_quiz))
+                    raw_output = generate_questions(full_text, diff, current_batch, q_type)
                     
                     if "ERROR" not in raw_output:
                         batch_data = parse_generated_questions(raw_output, q_type)
-                        final_quiz.extend(batch_data)
+                        for item in batch_data:
+                            if item['question'] not in seen_questions:
+                                final_quiz.append(item)
+                                seen_questions.add(item['question'])
+                        
                         progress_bar.progress(min(len(final_quiz) / total_needed, 1.0))
+                    else:
+                        break
                     time.sleep(1)
 
-            # SAVE AND REFRESH
             if final_quiz:
-                # If generating, respect the slider limit; if "As Is", take all found
                 save_quiz_to_disk(final_quiz[:num_q] if gen_mode == "Generate Questions" else final_quiz)
-                st.success(f"✅ Exam with {len(final_quiz)} questions published!")
+                st.success("✅ Exam Published!")
                 st.rerun()
         # --- DOWNLOAD & RESULTS SECTION ---
         # This part runs regardless of whether you just clicked generate
