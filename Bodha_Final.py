@@ -280,8 +280,6 @@ if st.session_state.role == "Examiner":
             st.success("System reset successfully.")
             st.rerun()
 
-       # uploaded_file = st.file_uploader("Upload Exam PDF", type=["pdf"])
-        
         # New Radio Button for Generation Mode
         gen_mode = st.radio("Generation Mode", ["Generate Questions", "Generate Question as Is"], horizontal=True)
 
