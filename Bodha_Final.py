@@ -359,8 +359,7 @@ if st.session_state.role == "Examiner":
                             break
                             
                 # Cleanup the status text after loop finishes
-                status_text.empty()
-                    time.sleep(1)
+                time.sleep(1)
                 status_gen.empty()
 
             if final_quiz:
