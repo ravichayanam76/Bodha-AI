@@ -289,7 +289,7 @@ if st.session_state.role == "Examiner":
             q_type = st.selectbox("Type", ["MCQ", "True/False"])
             diff = st.selectbox("Difficulty", ["Easy", "Medium", "Hard"])
         with col2:
-            num_q = st.slider("Number of Questions", 1, 50, 5)
+            num_q = st.slider("Number of Questions", 1, 60, 5)
 
         # --- FIXED GENERATION LOGIC WITH SUCCESS MESSAGE ---
         if uploaded_file and st.button("Publish Exam"):
@@ -340,7 +340,7 @@ if st.session_state.role == "Examiner":
                 status_text = st.empty() 
                 progress_bar = st.progress(0)
                 
-                with st.spinner("AI is generating questions. This may take a minute for 50 questions..."):
+                with st.spinner("AI is generating questions. This may take a minute for 60 questions..."):
                     while len(final_quiz) < total_needed:
                         current_batch = min(batch_size, total_needed - len(final_quiz))
                         
